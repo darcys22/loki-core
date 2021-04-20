@@ -65,6 +65,7 @@ extern "C" {
 #include "checkpoints/checkpoints.h"
 #include "ringct/rctTypes.h"
 #include "blockchain_db/blockchain_db.h"
+#include "blockchain_db/sqlite/db_sqlite.h"
 #include "ringct/rctSigs.h"
 #include "common/notify.h"
 #include "version.h"
@@ -821,10 +822,15 @@ namespace cryptonote
     sqlite3 *ons_db = ons::init_oxen_name_system(ons_db_file_path, db->is_read_only());
     if (!ons_db) return false;
 
+    //TODO sean make this work
+    auto sqlite_db_file_path = folder / "sqlite.db";
+    auto sqliteDB = std::make_shared<cryptonote::BlockchainSQLite>();
+    sqliteDB->load_database(sqlite_db_file_path);
+
     init_oxenmq(vm);
 
     const difficulty_type fixed_difficulty = command_line::get_arg(vm, arg_fixed_difficulty);
-    r = m_blockchain_storage.init(db.release(), ons_db, m_nettype, m_offline, regtest ? &regtest_test_options : test_options, fixed_difficulty, get_checkpoints);
+    r = m_blockchain_storage.init(db.release(), ons_db, std::move(sqliteDB), m_nettype, m_offline, regtest ? &regtest_test_options : test_options, fixed_difficulty, get_checkpoints);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize blockchain storage");
 
     r = m_mempool.init(max_txpool_weight);

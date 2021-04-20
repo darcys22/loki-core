@@ -69,6 +69,7 @@ static void add_service_nodes(oxen_chain_generator &gen, size_t count)
 // code path" again
 bool oxen_checkpointing_alt_chain_handle_alt_blocks_at_tip::generate(std::vector<test_event_entry>& events)
 {
+
   std::vector<std::pair<uint8_t, uint64_t>> hard_forks = oxen_generate_hard_fork_table();
   oxen_chain_generator gen(events, hard_forks);
 
@@ -76,12 +77,14 @@ bool oxen_checkpointing_alt_chain_handle_alt_blocks_at_tip::generate(std::vector
   gen.add_mined_money_unlock_blocks();
   add_service_nodes(gen, service_nodes::CHECKPOINT_QUORUM_SIZE);
 
+
   // NOTE: Create next block on checkpoint boundary and add checkpoiont
 
   oxen_chain_generator fork = gen;
   gen.add_blocks_until_next_checkpointable_height();
   fork.add_blocks_until_next_checkpointable_height();
   fork.add_service_node_checkpoint(fork.height(), service_nodes::CHECKPOINT_MIN_VOTES);
+
 
   // NOTE: Though we receive a checkpoint via votes, the alt block is still in
   // the alt db because we don't trigger a chain switch until we receive a 2nd
@@ -478,7 +481,8 @@ bool oxen_core_block_reward_unpenalized_pre_pulse::generate(std::vector<test_eve
 
 bool oxen_core_block_reward_unpenalized_post_pulse::generate(std::vector<test_event_entry>& events)
 {
-  std::vector<std::pair<uint8_t, uint64_t>> hard_forks = oxen_generate_hard_fork_table(cryptonote::network_version_count -1, 150 /*Proof Of Stake Delay*/);
+  // Checks up until batching of block rewards
+  std::vector<std::pair<uint8_t, uint64_t>> hard_forks = oxen_generate_hard_fork_table(cryptonote::network_version_19 -1, 150 /*Proof Of Stake Delay*/);
   oxen_chain_generator gen(events, hard_forks);
 
   uint8_t const newest_hf = hard_forks.back().first;
@@ -527,7 +531,8 @@ bool oxen_core_block_reward_unpenalized_post_pulse::generate(std::vector<test_ev
 
 bool oxen_core_fee_burning::generate(std::vector<test_event_entry>& events)
 {
-  std::vector<std::pair<uint8_t, uint64_t>> hard_forks = oxen_generate_hard_fork_table();
+  // Fees burned via coinbase every block until version 19
+  std::vector<std::pair<uint8_t, uint64_t>> hard_forks = oxen_generate_hard_fork_table(cryptonote::network_version_19-1);
   oxen_chain_generator gen(events, hard_forks);
   gen.add_blocks_until_version(hard_forks.back().first);
 

@@ -30,6 +30,7 @@
 add_library(blockchain_db
   blockchain_db.cpp
   lmdb/db_lmdb.cpp
+  sqlite/db_sqlite.cpp
   )
 
 target_link_libraries(blockchain_db
@@ -39,6 +40,7 @@ target_link_libraries(blockchain_db
     lmdb
     filesystem
     Boost::thread
+    sqlite_orm::sqlite_orm
     extra)
 
 target_compile_definitions(blockchain_db PRIVATE

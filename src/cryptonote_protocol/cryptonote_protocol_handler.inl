@@ -566,7 +566,6 @@ namespace cryptonote
     m_core.pause_mine();
       
     block new_block;
-    transaction miner_tx;
     if(parse_and_validate_block_from_blob(arg.b.block, new_block))
     {
       // This is a second notification, we must have asked for some missing tx

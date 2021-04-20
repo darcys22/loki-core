@@ -428,6 +428,8 @@ namespace cryptonote
     void set_hash_valid(bool v) const;
 
     transaction miner_tx;
+    crypto::public_key service_node_winner_key;
+    uint64_t reward;
     std::vector<crypto::hash> tx_hashes;
 
     // hash cache
@@ -445,6 +447,11 @@ namespace cryptonote
         throw std::invalid_argument{"too many txs in block"};
       if (major_version >= cryptonote::network_version_16_pulse)
         FIELD(signatures)
+      if (major_version >= cryptonote::network_version_19)
+      {
+        FIELD(service_node_winner_key)
+        FIELD(reward) 
+      }
     END_SERIALIZE()
   };
 

@@ -405,7 +405,8 @@ bool Blockchain::load_missing_blocks_into_oxen_subsystems()
 //------------------------------------------------------------------
 //FIXME: possibly move this into the constructor, to avoid accidentally
 //       dereferencing a null BlockchainDB pointer
-bool Blockchain::init(BlockchainDB* db, sqlite3 *ons_db, const network_type nettype, bool offline, const cryptonote::test_options *test_options, difficulty_type fixed_difficulty, const GetCheckpointsCallback& get_checkpoints/* = nullptr*/)
+bool Blockchain::init(BlockchainDB* db, sqlite3 *ons_db, std::shared_ptr<cryptonote::BlockchainSQLite> sqlite_db, const network_type nettype, bool offline, const cryptonote::test_options *test_options, difficulty_type fixed_difficulty, const GetCheckpointsCallback& get_checkpoints/* = nullptr*/)
+
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 
@@ -578,6 +579,11 @@ bool Blockchain::init(BlockchainDB* db, sqlite3 *ons_db, const network_type nett
     return false;
   }
 
+  if (sqlite_db)
+  {
+    m_sqlite_db = std::move(sqlite_db);
+  }
+
   hook_block_added(m_checkpoints);
   hook_blockchain_detached(m_checkpoints);
   for (InitHook* hook : m_init_hooks)
@@ -592,11 +598,11 @@ bool Blockchain::init(BlockchainDB* db, sqlite3 *ons_db, const network_type nett
   return true;
 }
 //------------------------------------------------------------------
-bool Blockchain::init(BlockchainDB* db, HardFork*& hf, sqlite3 *ons_db, const network_type nettype, bool offline)
+bool Blockchain::init(BlockchainDB* db, HardFork*& hf, sqlite3 *ons_db, std::shared_ptr<cryptonote::BlockchainSQLite> sqlite_db, const network_type nettype, bool offline)
 {
   if (hf != nullptr)
     m_hardfork = hf;
-  bool res = init(db, ons_db, nettype, offline, NULL);
+  bool res = init(db, ons_db, sqlite_db, nettype, offline, NULL);
   if (hf == nullptr)
     hf = m_hardfork;
   return res;
@@ -732,6 +738,7 @@ block Blockchain::pop_block_from_blockchain()
 
   CHECK_AND_ASSERT_THROW_MES(m_db->height() > 1, "Cannot pop the genesis block");
 
+
   try
   {
     m_db->pop_block(popped_block, popped_txs);
@@ -747,6 +754,22 @@ block Blockchain::pop_block_from_blockchain()
   {
     LOG_ERROR("Error popping block from blockchain, throwing!");
     throw;
+  }
+  if ( popped_block.major_version >= cryptonote::network_version_19 && m_nettype != FAKECHAIN )
+  {
+    //TODO sean this needs to be updated to get the service node winner for block not coinbase tx
+    // Also service_node_list has a function that can do this: payout service_node_info_to_payout(crypto::public_key const &key, service_node_info const &info)
+    std::vector<std::tuple<std::string, uint64_t>> contributors{0};
+    auto service_node_array = m_service_node_list.get_service_node_list_state({popped_block.service_node_winner_key});
+    for (auto & contributor : service_node_array[0].info->contributors)
+    {
+      contributors.emplace_back(cryptonote::get_account_address_as_str(m_nettype, false/*is_subaddress*/, contributor.address), contributor.amount);
+    }
+    if (m_sqlite_db->pop_block(m_nettype, popped_block, popped_txs, contributors))
+    {
+      LOG_ERROR("Failed to pop to batch rewards DB. throwing");
+      throw;
+    }
   }
 
   // make sure the hard fork object updates its current version
@@ -1323,6 +1346,9 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
   //validate reward
   uint64_t const money_in_use = get_outs_money_amount(b.miner_tx);
   if (b.miner_tx.vout.size() == 0) {
+    //TODO sean - check that a batch should be paid out - give warning maybe?
+    if (b.major_version >= cryptonote::network_version_19)
+      return true;
     MERROR_VER("miner tx has no outputs");
     return false;
   }
@@ -1377,6 +1403,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
       MERROR("Governance reward amount incorrect.  Should be: " << print_money(reward_parts.governance_paid) << ", is: " << print_money(b.miner_tx.vout.back().amount));
       return false;
     }
+
 
     if (!validate_governance_reward_key(
                 m_db->height(),
@@ -1661,6 +1688,13 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
     return true;
   }
   LOG_ERROR("Failed to create_block_template with " << 10 << " tries");
+  //TODO sean should be producer?
+  b.service_node_winner_key = miner_tx_context.pulse_block_producer.key;
+  b.reward = expected_reward;
+  if (hf_version >= cryptonote::network_version_19 && b.miner_tx.vout.size() == 0)
+  {
+    b.miner_tx = {};
+  }
   return false;
 }
 //------------------------------------------------------------------
@@ -4455,6 +4489,25 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
     MGINFO_RED("Failed to add block to ONS DB.");
     bvc.m_verifivation_failed = true;
     return false;
+  }
+
+  if ( bl.major_version >= cryptonote::network_version_19 && m_nettype != FAKECHAIN )
+  {
+    //TODO sean this needs to be updated to get the service node winner for block not coinbase tx
+    // Also service_node_list has a function that can do this: payout service_node_info_to_payout(crypto::public_key const &key, service_node_info const &info)
+    std::vector<std::tuple<std::string, uint64_t>> contributors{0};
+    //auto service_node_array = m_service_node_list.get_service_node_list_state({cryptonote::get_service_node_winner_from_tx_extra(bl.miner_tx.extra)});
+    auto service_node_array = m_service_node_list.get_service_node_list_state({bl.service_node_winner_key});
+    for (auto & contributor : service_node_array[0].info->contributors)
+    {
+      contributors.emplace_back(cryptonote::get_account_address_as_str(m_nettype, false/*is_subaddress*/, contributor.address), contributor.amount);
+    }
+    if (!m_sqlite_db->add_block(m_nettype, bl, only_txs, contributors))
+    {
+      MGINFO_RED("Failed to add block to batch rewards DB.");
+      bvc.m_verifivation_failed = true;
+      return false;
+    }
   }
 
   for (BlockAddedHook* hook : m_block_added_hooks)

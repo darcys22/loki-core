@@ -121,6 +121,8 @@ namespace cryptonote
     cryptonote::get_account_address_from_str(governance_wallet_address, nettype, governance_wallet_address_str);
     crypto::public_key correct_key;
 
+
+
     if (!get_deterministic_output_key(governance_wallet_address.address, gov_key, output_index, correct_key))
     {
       MERROR("Failed to generate deterministic output key for governance wallet output validation");
@@ -355,6 +357,8 @@ namespace cryptonote
     service_nodes::payout const &leader = miner_tx_context.block_leader;
     if (miner_tx_context.pulse)
     {
+      // PULSE BLOCKS 
+      
       CHECK_AND_ASSERT_MES(miner_tx_context.pulse_block_producer.payouts.size(), false, "Constructing a reward for block produced by pulse but no payout entries specified");
       CHECK_AND_ASSERT_MES(miner_tx_context.pulse_block_producer.key, false, "Null Key given for Pulse Block Producer");
       CHECK_AND_ASSERT_MES(hard_fork_version >= cryptonote::network_version_16_pulse, false, "Pulse Block Producer is not valid until HF16, current HF" << hard_fork_version);
@@ -380,7 +384,8 @@ namespace cryptonote
     }
     else
     {
-
+      // MINED BLOCKS 
+      
       CHECK_AND_ASSERT_MES(miner_tx_context.pulse_block_producer.payouts.empty(), false, "Constructing a reward for block produced by miner but payout entries specified");
 
       if (uint64_t miner_amount = reward_parts.base_miner + reward_parts.miner_fee; miner_amount)
@@ -413,10 +418,13 @@ namespace cryptonote
       }
     }
     CHECK_AND_ASSERT_MES(rewards_length <= rewards.size(), false, "More rewards specified than supported, number of rewards: " << rewards_length << ", capacity: " << rewards.size());
-    CHECK_AND_ASSERT_MES(rewards_length > 0,               false, "Zero rewards are to be payed out, there should be at least 1");
+
+    if (hard_fork_version < cryptonote::network_version_19)
+      CHECK_AND_ASSERT_MES(rewards_length > 0,               false, "Zero rewards are to be payed out, there should be at least 1");
 
     // NOTE: Make TX Outputs
     uint64_t summary_amounts = 0;
+    size_t batched = 0;
     for (size_t reward_index = 0; reward_index < rewards_length; reward_index++)
     {
       auto const &[type, address, amount] = rewards[reward_index];
@@ -428,12 +436,11 @@ namespace cryptonote
       keypair const &derivation_pair = (type == reward_type::miner) ? txkey : gov_key;
       crypto::key_derivation derivation{};
 
-      if (!get_deterministic_output_key(address, derivation_pair, reward_index, out_eph_public_key))
+      if (!get_deterministic_output_key(address, derivation_pair, reward_index - batched, out_eph_public_key))
       {
         MERROR("Failed to generate output one-time public key");
         return false;
       }
-
 
       txout_to_key tk = {};
       tk.key          = out_eph_public_key;
@@ -441,9 +448,15 @@ namespace cryptonote
       tx_out out = {};
       out.target = tk;
       out.amount = amount;
-      tx.vout.push_back(out);
-      tx.output_unlock_times.push_back(height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
-      summary_amounts += amount;
+      //Only create the outputs if before batching
+      if (hard_fork_version < cryptonote::network_version_19 || type == reward_type::governance)
+      {
+        tx.vout.push_back(out);
+        tx.output_unlock_times.push_back(height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
+        summary_amounts += amount;
+      } else {
+        batched++;
+      }
     }
 
     uint64_t expected_amount = 0;
@@ -463,11 +476,13 @@ namespace cryptonote
     }
     else
     {
-      expected_amount = reward_parts.base_miner + reward_parts.miner_fee + reward_parts.governance_paid + reward_parts.service_node_total;
+      expected_amount = reward_parts.governance_paid;
+      if (hard_fork_version < cryptonote::network_version_19)
+        expected_amount = expected_amount + reward_parts.base_miner + reward_parts.miner_fee + reward_parts.service_node_total;
     }
 
     CHECK_AND_ASSERT_MES(summary_amounts == expected_amount, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal total block_reward = " << expected_amount);
-    CHECK_AND_ASSERT_MES(tx.vout.size() == rewards_length, false, "TX output mis-match with rewards expected: " << rewards_length << ", tx outputs: " << tx.vout.size());
+    CHECK_AND_ASSERT_MES(tx.vout.size() == (rewards_length - batched), false, "TX output mis-match with rewards expected: " << (rewards_length - batched) << ", tx outputs: " << tx.vout.size());
 
     //lock
     tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
