@@ -721,7 +721,7 @@ namespace service_nodes
         if (sn_list && !sn_list->m_rescanning)
         {
           auto &proof = sn_list->proofs[key];
-          proof.timestamp = proof.effective_timestamp = 0;
+          proof.proof_received_timestamp = proof.effective_timestamp = 0;
           proof.store(key, sn_list->m_blockchain);
         }
         return true;
@@ -2827,8 +2827,8 @@ namespace service_nodes
       update_db = true;
       proof = std::move(new_proof);
     }
-    update_db |= update_val(timestamp, ts);
-    effective_timestamp = timestamp;
+    update_db |= update_val(proof_received_timestamp, ts);
+    effective_timestamp = proof_received_timestamp;
     pubkey_x25519 = pk_x2;
 
     // Track an IP change (so that the obligations quorum can penalize for IP changes)
@@ -2862,14 +2862,14 @@ namespace service_nodes
   {
     bool update_db = false;
     if (!proof) proof = std::unique_ptr<uptime_proof::Proof>(new uptime_proof::Proof());
-    update_db |= update_val(timestamp, ts);
+    update_db |= update_val(proof_received_timestamp, ts);
     update_db |= update_val(proof->public_ip, ip);
     update_db |= update_val(proof->storage_https_port, s_https_port);
     update_db |= update_val(proof->storage_omq_port, s_omq_port);
     update_db |= update_val(proof->qnet_port, q_port);
     update_db |= update_val(proof->version, ver);
     update_db |= update_val(proof->pubkey_ed25519, pk_ed);
-    effective_timestamp = timestamp;
+    effective_timestamp = proof_received_timestamp;
     pubkey_x25519 = pk_x2;
 
     // Track an IP change (so that the obligations quorum can penalize for IP changes)
@@ -2954,7 +2954,7 @@ namespace service_nodes
     auto &iproof = proofs[proof.pubkey];
 
 
-    if (now <= std::chrono::system_clock::from_time_t(iproof.timestamp) + std::chrono::seconds{netconf.UPTIME_PROOF_FREQUENCY} / 2)
+    if (now <= std::chrono::system_clock::from_time_t(iproof.proof_received_timestamp) + std::chrono::seconds{netconf.UPTIME_PROOF_FREQUENCY} / 2)
       REJECT_PROOF("already received one uptime proof for this node recently");
 
     if (m_service_node_keys && proof.pubkey == m_service_node_keys->pub)
@@ -3045,7 +3045,7 @@ namespace service_nodes
 
     auto &iproof = proofs[proof->pubkey];
 
-    if (now <= std::chrono::system_clock::from_time_t(iproof.timestamp) + std::chrono::seconds{netconf.UPTIME_PROOF_FREQUENCY} / 2)
+    if (now <= std::chrono::system_clock::from_time_t(iproof.proof_received_timestamp) + std::chrono::seconds{netconf.UPTIME_PROOF_FREQUENCY} / 2)
       REJECT_PROOF("already received one uptime proof for this node recently");
 
     if (m_service_node_keys && proof->pubkey == m_service_node_keys->pub)
@@ -3102,7 +3102,7 @@ namespace service_nodes
       // 6h here because there's no harm in leaving proofs around a bit longer (they aren't big, and
       // we only store one per SN), and it's possible that we could reorg a few blocks and resurrect
       // a service node but don't want to prematurely expire the proof.
-      if (!m_state.service_nodes_infos.count(pubkey) && proof.timestamp + 6*60*60 < now)
+      if (!m_state.service_nodes_infos.count(pubkey) && proof.proof_received_timestamp + 6*60*60 < now)
       {
         db.remove_service_node_proof(pubkey);
         it = proofs.erase(it);
@@ -3509,7 +3509,7 @@ namespace service_nodes
       // startup (in case we are restarting because the last proof that we think went out didn't
       // actually make it to the network).
       auto &mine = proofs[m_service_node_keys->pub];
-      mine.timestamp = mine.effective_timestamp = 0;
+      mine.proof_received_timestamp = mine.effective_timestamp = 0;
     }
 
     initialize_x25519_map();

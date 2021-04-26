@@ -547,7 +547,7 @@ namespace cryptonote
           s += "decomm.";
 
         uint64_t last_proof = 0;
-        snl.access_proof(pubkey, [&](auto& proof) { last_proof = proof.timestamp; });
+        snl.access_proof(pubkey, [&](auto& proof) { last_proof = proof.proof_received_timestamp; });
         s += ", proof: ";
         time_t now = std::time(nullptr);
         s += time_ago_str(now, last_proof);
@@ -2299,7 +2299,7 @@ namespace cryptonote
         // proof if we are within half a tick of the target time.  (Essentially our target proof
         // window becomes the first time this triggers in the 59.75-60.25 minute window).
         uint64_t next_proof_time = 0;
-        m_service_node_list.access_proof(m_service_keys.pub, [&](auto &proof) { next_proof_time = proof.timestamp; });
+        m_service_node_list.access_proof(m_service_keys.pub, [&](auto &proof) { next_proof_time = proof.proof_received_timestamp; });
         auto& netconf = get_net_config();
         next_proof_time += std::chrono::seconds{
             netconf.UPTIME_PROOF_FREQUENCY - netconf.UPTIME_PROOF_CHECK_INTERVAL/2}.count();

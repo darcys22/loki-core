@@ -6282,7 +6282,7 @@ struct service_node_proof_serialized_old
 {
   service_node_proof_serialized_old() = default;
   service_node_proof_serialized_old(const service_nodes::proof_info &info)
-    : timestamp{native_to_little(info.timestamp)},
+    : timestamp{native_to_little(info.proof_received_timestamp)},
       ip{native_to_little(info.proof->public_ip)},
       storage_https_port{native_to_little(info.proof->storage_https_port)},
       storage_omq_port{native_to_little(info.proof->storage_omq_port)},
@@ -6293,9 +6293,9 @@ struct service_node_proof_serialized_old
 
   void update(service_nodes::proof_info &info) const
   {
-    info.timestamp = little_to_native(timestamp);
-    if (info.timestamp > info.effective_timestamp)
-      info.effective_timestamp = info.timestamp;
+    info.proof_received_timestamp = little_to_native(timestamp);
+    if (info.proof_received_timestamp > info.effective_timestamp)
+      info.effective_timestamp = info.proof_received_timestamp;
     info.proof->public_ip = little_to_native(ip);
     info.proof->storage_https_port = little_to_native(storage_https_port);
     info.proof->storage_omq_port = little_to_native(storage_omq_port);

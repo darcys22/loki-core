@@ -151,8 +151,8 @@ namespace service_nodes
     participation_history<timestamp_participation_entry> timestamp_participation{};
     participation_history<timesync_entry> timesync_status{};
 
-    uint64_t timestamp           = 0; // The actual time we last received an uptime proof (serialized)
-    uint64_t effective_timestamp = 0; // Typically the same, but on recommissions it is set to the recommission block time to fend off instant obligation checks
+    uint64_t proof_received_timestamp      = 0; // The actual time we last received an uptime proof (serialized)
+    uint64_t effective_timestamp           = 0; // Typically the same, but on recommissions it is set to the recommission block time to fend off instant obligation checks
     std::array<std::pair<uint32_t, uint64_t>, 2> public_ips = {}; // (not serialized)
 
     // See set_storage_server_peer_reachable(...)
