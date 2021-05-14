@@ -460,6 +460,8 @@ void BlockchainDB::fill_timestamps_and_difficulties_for_pow(cryptonote::network_
 
     for (uint64_t block_height = start_height; block_height < (chain_height - 1) /*skip latest block*/; block_height++)
     {
+      MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
+      MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mdb height" << block_height);
       timestamps.push_back(get_block_timestamp(block_height));
       difficulties.push_back(get_block_cumulative_difficulty(block_height));
     }

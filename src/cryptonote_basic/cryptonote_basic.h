@@ -428,6 +428,7 @@ namespace cryptonote
     void set_hash_valid(bool v) const;
 
     transaction miner_tx;
+    size_t height;
     crypto::public_key service_node_winner_key;
     uint64_t reward;
     std::vector<crypto::hash> tx_hashes;
@@ -449,6 +450,7 @@ namespace cryptonote
         FIELD(signatures)
       if (major_version >= cryptonote::network_version_19)
       {
+        VARINT_FIELD(height)
         FIELD(service_node_winner_key)
         FIELD(reward) 
       }

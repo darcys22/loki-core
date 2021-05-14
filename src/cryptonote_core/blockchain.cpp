@@ -1029,6 +1029,7 @@ std::vector<time_t> Blockchain::get_last_block_timestamps(unsigned int blocks) c
     blocks = height;
   std::vector<time_t> timestamps(blocks);
   while (blocks--)
+    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
     timestamps[blocks] = m_db->get_block_timestamp(height - blocks - 1);
   return timestamps;
 }
@@ -1247,6 +1248,7 @@ difficulty_type Blockchain::get_difficulty_for_alternative_chain(const std::list
     // get difficulties and timestamps from relevant main chain blocks
     for(; main_chain_start_offset < main_chain_stop_offset; ++main_chain_start_offset)
     {
+      MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
       timestamps.push_back(m_db->get_block_timestamp(main_chain_start_offset));
       cumulative_difficulties.push_back(m_db->get_block_cumulative_difficulty(main_chain_start_offset));
     }
@@ -1296,44 +1298,49 @@ difficulty_type Blockchain::get_difficulty_for_alternative_chain(const std::list
 bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height, uint8_t hf_version)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
-  CHECK_AND_ASSERT_MES(b.miner_tx.vin.size() == 1, false, "coinbase transaction in the block has no inputs");
-  CHECK_AND_ASSERT_MES(std::holds_alternative<txin_gen>(b.miner_tx.vin[0]), false, "coinbase transaction in the block has the wrong type");
-  if (var::get<txin_gen>(b.miner_tx.vin[0]).height != height)
+  if (b.miner_tx.vout.size() > 0)
   {
-    MWARNING("The miner transaction in block has invalid height: " << var::get<txin_gen>(b.miner_tx.vin[0]).height << ", expected: " << height);
-    return false;
-  }
-  MDEBUG("Miner tx hash: " << get_transaction_hash(b.miner_tx));
-  CHECK_AND_ASSERT_MES(b.miner_tx.unlock_time == height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW, false, "coinbase transaction transaction has the wrong unlock time=" << b.miner_tx.unlock_time << ", expected " << height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
-
-  if (hf_version >= cryptonote::network_version_12_checkpointing)
-  {
-    if (b.miner_tx.type != txtype::standard)
+    CHECK_AND_ASSERT_MES(b.miner_tx.vin.size() == 1, false, "coinbase transaction in the block has no inputs");
+    CHECK_AND_ASSERT_MES(std::holds_alternative<txin_gen>(b.miner_tx.vin[0]), false, "coinbase transaction in the block has the wrong type");
+    if (var::get<txin_gen>(b.miner_tx.vin[0]).height != height)
     {
-      MERROR("Coinbase invalid transaction type for coinbase transaction.");
+      MWARNING("The miner transaction in block has invalid height: " << var::get<txin_gen>(b.miner_tx.vin[0]).height << ", expected: " << height);
       return false;
     }
+    MDEBUG("Miner tx hash: " << get_transaction_hash(b.miner_tx));
+    CHECK_AND_ASSERT_MES(b.miner_tx.unlock_time == height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW, false, "coinbase transaction transaction has the wrong unlock time=" << b.miner_tx.unlock_time << ", expected " << height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
 
-    txversion min_version = transaction::get_max_version_for_hf(hf_version);
-    txversion max_version = transaction::get_min_version_for_hf(hf_version);
-    if (b.miner_tx.version < min_version || b.miner_tx.version > max_version)
+    if (hf_version >= cryptonote::network_version_12_checkpointing)
     {
-      MERROR_VER("Coinbase invalid version: " << b.miner_tx.version << " for hardfork: " << hf_version << " min/max version:  " << min_version << "/" << max_version);
+      if (b.miner_tx.type != txtype::standard)
+      {
+        MERROR("Coinbase invalid transaction type for coinbase transaction.");
+        return false;
+      }
+
+      txversion min_version = transaction::get_max_version_for_hf(hf_version);
+      txversion max_version = transaction::get_min_version_for_hf(hf_version);
+      if (b.miner_tx.version < min_version || b.miner_tx.version > max_version)
+      {
+        MERROR_VER("Coinbase invalid version: " << b.miner_tx.version << " for hardfork: " << hf_version << " min/max version:  " << min_version << "/" << max_version);
+        return false;
+      }
+    }
+
+    if (hf_version >= HF_VERSION_REJECT_SIGS_IN_COINBASE) // Enforce empty rct signatures for miner transactions,
+      CHECK_AND_ASSERT_MES(b.miner_tx.rct_signatures.type == rct::RCTType::Null, false, "RingCT signatures not allowed in coinbase transactions");
+
+    //check outs overflow
+    //NOTE: not entirely sure this is necessary, given that this function is
+    //      designed simply to make sure the total amount for a transaction
+    //      does not overflow a uint64_t, and this transaction *is* a uint64_t...
+    if(!check_outs_overflow(b.miner_tx))
+    {
+      MERROR("miner transaction has money overflow in block " << get_block_hash(b));
       return false;
     }
-  }
-
-  if (hf_version >= HF_VERSION_REJECT_SIGS_IN_COINBASE) // Enforce empty rct signatures for miner transactions,
-    CHECK_AND_ASSERT_MES(b.miner_tx.rct_signatures.type == rct::RCTType::Null, false, "RingCT signatures not allowed in coinbase transactions");
-
-  //check outs overflow
-  //NOTE: not entirely sure this is necessary, given that this function is
-  //      designed simply to make sure the total amount for a transaction
-  //      does not overflow a uint64_t, and this transaction *is* a uint64_t...
-  if(!check_outs_overflow(b.miner_tx))
-  {
-    MERROR("miner transaction has money overflow in block " << get_block_hash(b));
-    return false;
+  } else {
+    //TODO sean make sure miner tx is empty
   }
 
   return true;
@@ -1685,16 +1692,27 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
 
     if (!from_block)
       cache_block_template(b, info.miner_address, ex_nonce, diffic, height, expected_reward, pool_cookie);
+    //TODO sean should be producer? This really needs to handle many edge cases
+    MDEBUG("Setting service node winner for block");
+    if (miner_tx_context.pulse)
+    {
+      MDEBUG("pulse block winner");
+      b.service_node_winner_key = miner_tx_context.pulse_block_producer.key;
+    }
+    else
+    {
+      MDEBUG("mined block winner");
+      b.service_node_winner_key = miner_tx_context.block_leader.key;
+    }
+    b.reward = expected_reward;
+    b.height = height;
+    if (hf_version >= cryptonote::network_version_19 && b.miner_tx.vout.size() == 0)
+    {
+      b.miner_tx = {};
+    }
     return true;
   }
   LOG_ERROR("Failed to create_block_template with " << 10 << " tries");
-  //TODO sean should be producer?
-  b.service_node_winner_key = miner_tx_context.pulse_block_producer.key;
-  b.reward = expected_reward;
-  if (hf_version >= cryptonote::network_version_19 && b.miner_tx.vout.size() == 0)
-  {
-    b.miner_tx = {};
-  }
   return false;
 }
 //------------------------------------------------------------------
@@ -1741,6 +1759,7 @@ bool Blockchain::complete_timestamps_vector(uint64_t start_top_height, std::vect
   timestamps.reserve(timestamps.size() + start_top_height - stop_offset);
   while (start_top_height != stop_offset)
   {
+    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
     timestamps.push_back(m_db->get_block_timestamp(start_top_height));
     --start_top_height;
   }
@@ -3990,6 +4009,11 @@ bool Blockchain::check_block_timestamp(const block& b, uint64_t& median_ts) cons
   timestamps.reserve(h - offset);
   for(;offset < h; ++offset)
   {
+    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
+    //MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - block " << cryptonote::obj_to_json_str(b));
+    MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW " << BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW);
+    MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mdb height" << h);
+    MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mdb offset" << offset);
     timestamps.push_back(m_db->get_block_timestamp(offset));
   }
 

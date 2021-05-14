@@ -2635,6 +2635,8 @@ uint64_t BlockchainLMDB::get_block_timestamp(const uint64_t& height) const
   RCURSOR(block_info);
 
   MDB_val_set(result, height);
+  MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
+  MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, - " << height);
   auto get_result = mdb_cursor_get(m_cur_block_info, (MDB_val *)&zerokval, &result, MDB_GET_BOTH);
   if (get_result == MDB_NOTFOUND)
   {
@@ -2720,6 +2722,8 @@ uint64_t BlockchainLMDB::get_top_block_timestamp() const
   {
     return 0;
   }
+  MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
+  MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mdb height" << m_height);
 
   return get_block_timestamp(m_height - 1);
 }

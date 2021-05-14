@@ -888,9 +888,24 @@ namespace cryptonote
   //---------------------------------------------------------------
   uint64_t get_block_height(const block& b)
   {
-    CHECK_AND_ASSERT_MES(b.miner_tx.vin.size() == 1, 0, "wrong miner tx in block: " << get_block_hash(b) << ", b.miner_tx.vin.size() != 1 (size is: " << b.miner_tx.vin.size() << ")");
-    CHECKED_GET_SPECIFIC_VARIANT(b.miner_tx.vin[0], txin_gen, coinbase_in, 0);
-    return coinbase_in.height;
+    //TODO sean miner size
+    cryptonote::block bl = b;
+    MGINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - block " << cryptonote::obj_to_json_str(bl));
+    if (b.miner_tx.vout.size() > 0)
+    {
+      CHECK_AND_ASSERT_MES(b.miner_tx.vin.size() == 1, 0, "wrong miner tx in block: " << get_block_hash(b) << ", b.miner_tx.vin.size() != 1 (size is: " << b.miner_tx.vin.size() << ")");
+      CHECKED_GET_SPECIFIC_VARIANT(b.miner_tx.vin[0], txin_gen, coinbase_in, 0);
+      if(b.major_version >= cryptonote::network_version_19)
+      {
+        CHECK_AND_ASSERT_MES(coinbase_in.height == b.height, 0, "wrong miner tx in block: " << get_block_hash(b));
+      }
+
+      MGINFO("getting block height old way" << coinbase_in.height);
+      return coinbase_in.height;
+    } else {
+      MGINFO("getting block height new way" << b.height);
+      return b.height;
+    }
   }
   //---------------------------------------------------------------
   bool check_inputs_types_supported(const transaction& tx)

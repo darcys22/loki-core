@@ -365,6 +365,8 @@ namespace cryptonote { namespace rpc {
 
     crypto::hash top_hash;
     m_core.get_blockchain_top(res.height, top_hash);
+    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
+    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, - " << res.height);
     auto prev_ts = m_core.get_blockchain_storage().get_db().get_block_timestamp(res.height);
     ++res.height; // turn top block height into blockchain height
     res.top_block_hash = tools::type_to_hex(top_hash);
@@ -1008,6 +1010,8 @@ namespace cryptonote { namespace rpc {
       else
       {
         e.block_height = m_core.get_blockchain_storage().get_db().get_tx_block_height(tx_hash);
+        MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
+        MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, - " << e.block_height);
         e.block_timestamp = m_core.get_blockchain_storage().get_db().get_block_timestamp(e.block_height);
         e.received_timestamp = 0;
         e.double_spend_seen = false;

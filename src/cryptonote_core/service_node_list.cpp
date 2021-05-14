@@ -1516,6 +1516,8 @@ namespace service_nodes
       else
       {
         uint64_t prev_height = height - 1;
+        MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
+        MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, - " << prev_height);
         prev_timestamp       = m_blockchain.get_db().get_block_timestamp(prev_height);
       }
 
