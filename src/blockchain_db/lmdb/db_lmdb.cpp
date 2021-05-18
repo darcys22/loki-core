@@ -960,12 +960,15 @@ void BlockchainLMDB::remove_block()
 uint64_t BlockchainLMDB::add_transaction_data(const crypto::hash& blk_hash, const std::pair<transaction, blobdata>& txp, const crypto::hash& tx_hash, const crypto::hash& tx_prunable_hash)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - blockcahinLMDB adding transaction data");
   check_open();
   mdb_txn_cursors *m_cursors = &m_wcursors;
   uint64_t m_height = height();
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - height" << m_height);
 
   int result;
   uint64_t tx_id = get_tx_count();
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - tx_id" << tx_id);
 
   CURSOR(txs_pruned)
   CURSOR(txs_prunable)
@@ -2635,8 +2638,6 @@ uint64_t BlockchainLMDB::get_block_timestamp(const uint64_t& height) const
   RCURSOR(block_info);
 
   MDB_val_set(result, height);
-  MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
-  MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, - " << height);
   auto get_result = mdb_cursor_get(m_cur_block_info, (MDB_val *)&zerokval, &result, MDB_GET_BOTH);
   if (get_result == MDB_NOTFOUND)
   {
@@ -2722,8 +2723,6 @@ uint64_t BlockchainLMDB::get_top_block_timestamp() const
   {
     return 0;
   }
-  MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
-  MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mdb height" << m_height);
 
   return get_block_timestamp(m_height - 1);
 }

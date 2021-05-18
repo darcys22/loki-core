@@ -2112,6 +2112,7 @@ namespace cryptonote
         MERROR("Block found, but failed to prepare to add");
         return false;
       }
+      // add_new_block will verify block and set bvc.m_verification_failed accordingly
       add_new_block(b, bvc, nullptr /*checkpoint*/);
       cleanup_handle_incoming_blocks(true);
       m_miner.on_block_chain_update();

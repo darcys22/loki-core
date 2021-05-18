@@ -1029,7 +1029,6 @@ std::vector<time_t> Blockchain::get_last_block_timestamps(unsigned int blocks) c
     blocks = height;
   std::vector<time_t> timestamps(blocks);
   while (blocks--)
-    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
     timestamps[blocks] = m_db->get_block_timestamp(height - blocks - 1);
   return timestamps;
 }
@@ -1248,7 +1247,6 @@ difficulty_type Blockchain::get_difficulty_for_alternative_chain(const std::list
     // get difficulties and timestamps from relevant main chain blocks
     for(; main_chain_start_offset < main_chain_stop_offset; ++main_chain_start_offset)
     {
-      MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
       timestamps.push_back(m_db->get_block_timestamp(main_chain_start_offset));
       cumulative_difficulties.push_back(m_db->get_block_cumulative_difficulty(main_chain_start_offset));
     }
@@ -1359,6 +1357,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     MERROR_VER("miner tx has no outputs");
     return false;
   }
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - validate miner transaction" << "debug");
 
   uint64_t median_weight;
   if (version >= HF_VERSION_EFFECTIVE_SHORT_TERM_MEDIAN_IN_PENALTY)
@@ -1706,10 +1705,11 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
     }
     b.reward = expected_reward;
     b.height = height;
-    if (hf_version >= cryptonote::network_version_19 && b.miner_tx.vout.size() == 0)
-    {
-      b.miner_tx = {};
-    }
+    //Possibly don't remove the coinbase, but see if empty coinbase will be okay
+    //if (hf_version >= cryptonote::network_version_19 && b.miner_tx.vout.size() == 0)
+    //{
+      //b.miner_tx = {};
+    //}
     return true;
   }
   LOG_ERROR("Failed to create_block_template with " << 10 << " tries");
@@ -1759,7 +1759,6 @@ bool Blockchain::complete_timestamps_vector(uint64_t start_top_height, std::vect
   timestamps.reserve(timestamps.size() + start_top_height - stop_offset);
   while (start_top_height != stop_offset)
   {
-    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
     timestamps.push_back(m_db->get_block_timestamp(start_top_height));
     --start_top_height;
   }
@@ -2768,6 +2767,7 @@ bool Blockchain::get_split_transactions_blobs(const std::vector<crypto::hash>& t
 //------------------------------------------------------------------
 bool Blockchain::get_transactions(const std::vector<crypto::hash>& txs_ids, std::vector<transaction>& txs, std::vector<crypto::hash>& missed_txs) const
 {
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - Get transactions");
   LOG_PRINT_L3("Blockchain::" << __func__);
   std::unique_lock lock{*this};
 
@@ -2775,6 +2775,7 @@ bool Blockchain::get_transactions(const std::vector<crypto::hash>& txs_ids, std:
   cryptonote::blobdata tx;
   for (const auto& tx_hash : txs_ids)
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - Get transactions for hash: " << tx_hash);
     tx.clear();
     try
     {
@@ -3006,6 +3007,7 @@ bool Blockchain::get_tx_outputs_gindexs(const crypto::hash& tx_id, size_t n_txes
   LOG_PRINT_L3("Blockchain::" << __func__);
   std::unique_lock lock{*this};
   uint64_t tx_index;
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - searching for tx_id with hash: " << tx_id);
   if (!m_db->tx_exists(tx_id, tx_index))
   {
     MERROR_VER("get_tx_outputs_gindexs failed to find transaction with id = " << tx_id);
@@ -4009,11 +4011,6 @@ bool Blockchain::check_block_timestamp(const block& b, uint64_t& median_ts) cons
   timestamps.reserve(h - offset);
   for(;offset < h; ++offset)
   {
-    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
-    //MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - block " << cryptonote::obj_to_json_str(b));
-    MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW " << BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW);
-    MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mdb height" << h);
-    MDEBUG(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mdb offset" << offset);
     timestamps.push_back(m_db->get_block_timestamp(offset));
   }
 
@@ -4164,6 +4161,7 @@ bool Blockchain::basic_block_checks(cryptonote::block const &blk, bool alt_block
 
   if (alt_block)
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - basic block alt block" << "debug");
     if(cryptonote::get_block_height(blk) == 0)
     {
       MERROR_VER("Block with id: " << blk_hash << " (as alternative), but miner tx says height is 0.");
@@ -4179,6 +4177,7 @@ bool Blockchain::basic_block_checks(cryptonote::block const &blk, bool alt_block
     // this is a cheap test
     if (!m_hardfork->check_for_height(blk, blk_height))
     {
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - check for height failed" << "debug");
       LOG_PRINT_L1("Block with id: " << blk_hash << ", has old version: " << +blk.major_version << ", current: " << +hf_version << " for height " << blk_height);
       return false;
     }
@@ -4188,6 +4187,7 @@ bool Blockchain::basic_block_checks(cryptonote::block const &blk, bool alt_block
     crypto::hash top_hash = get_tail_id();
     if(blk.prev_id != top_hash)
     {
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - not top hash" << "debug");
       MGINFO_RED("Block with id: " << blk_hash << ", has wrong prev_id: " << blk.prev_id << ", expected: " << top_hash);
       return false;
     }
@@ -4252,6 +4252,7 @@ bool Blockchain::basic_block_checks(cryptonote::block const &blk, bool alt_block
 bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash& id, block_verification_context& bvc, checkpoint_t const *checkpoint, bool notify)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - ADDING NEW BLOCK IN HANDLE BLOCK TO MAINCHAIN" << "debug");
 
   TIME_MEASURE_START(block_processing_time);
   std::unique_lock lock{*this};
@@ -4261,6 +4262,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   if (!basic_block_checks(bl, false /*alt_block*/))
   {
     bvc.m_verifivation_failed = true;
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - basic block checks failed" << "debug");
     return false;
   }
   TIME_MEASURE_FINISH(t1);
@@ -4276,14 +4278,17 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   uint64_t const chain_height = get_current_blockchain_height();
   uint64_t current_diffic     = get_difficulty_for_next_block(pulse_block);
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   if (pulse_block)
   {
     // NOTE: Pulse blocks don't use PoW. They use Service Node signatures.
     // Delay signature verification until Service Node List adds the block in
     // the block_added hook.
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   }
   else // check proof of work
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
     miner.difficulty_calc_time = epee::misc_utils::get_tick_count();
     miner.difficulty_calc_time = epee::misc_utils::get_tick_count() - miner.difficulty_calc_time;
 
@@ -4291,12 +4296,15 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
     miner.blk_pow         = verify_block_pow(bl, current_diffic, chain_height, false /*alt_block*/);
     miner.verify_pow_time = epee::misc_utils::get_tick_count() - miner.verify_pow_time;
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
     if (!miner.blk_pow.valid)
     {
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - blk_pow invalid" << "debug");
       bvc.m_verifivation_failed = true;
       return false;
     }
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
     if (miner.blk_pow.precomputed)
       miner.verify_pow_time += m_fake_pow_calc_time;
   }
@@ -4304,6 +4312,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   size_t const coinbase_weight   = get_transaction_weight(bl.miner_tx);
   size_t cumulative_block_weight = coinbase_weight;
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   std::vector<std::pair<transaction, blobdata>> txs;
   key_images_container keys;
 
@@ -4315,13 +4324,20 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
 
 // XXX old code adds miner tx here
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
+  if ( bl.major_version >= cryptonote::network_version_19 && m_nettype != FAKECHAIN )
+  {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - block height: " << bl.height);
+  }
   size_t tx_index = 0;
   // Iterate over the block's transaction hashes, grabbing each
   // from the tx_pool and validating them.  Each is then added
   // to txs.  Keys spent in each are added to <keys> by the double spend check.
   txs.reserve(bl.tx_hashes.size());
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - Number of transactiosn: " << bl.tx_hashes.size());
   for (const crypto::hash& tx_id : bl.tx_hashes)
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - iterating transaction: " << tx_id);
     transaction tx_tmp;
     blobdata txblob;
     size_t tx_weight = 0;
@@ -4333,6 +4349,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
     if (m_db->tx_exists(tx_id))
     {
       MGINFO_RED("Block with id: " << id << " attempting to add transaction already in blockchain with id: " << tx_id);
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "transaction already in blockchain with" << tx_id );
       bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
@@ -4346,6 +4363,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
     if(!m_tx_pool.take_tx(tx_id, tx_tmp, txblob, tx_weight, fee, relayed, do_not_relay, double_spend_seen))
     {
       MGINFO_RED("Block with id: " << id  << " has at least one unknown transaction with id: " << tx_id);
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "block has at least on unknown tx with id " << tx_id << " which is causing to fail ");
       bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
@@ -4418,19 +4436,23 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
     cumulative_block_weight += tx_weight;
   }
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   m_blocks_txs_check.clear();
 
   TIME_MEASURE_START(vmt);
   uint64_t base_reward = 0;
   uint64_t already_generated_coins = chain_height ? m_db->get_block_already_generated_coins(chain_height - 1) : 0;
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   if(!validate_miner_transaction(bl, cumulative_block_weight, fee_summary, base_reward, already_generated_coins, m_hardfork->get_current_version()))
   {
     MGINFO_RED("Block " << (chain_height - 1) << " with id: " << id << " has incorrect miner transaction");
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "Block " << (chain_height - 1) << " with id: " << id << " has incorrect miner transaction");
     bvc.m_verifivation_failed = true;
     return_tx_to_pool(txs);
     return false;
   }
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   TIME_MEASURE_FINISH(vmt);
   // populate various metadata about the block to be stored alongside it.
   size_t block_weight                   = cumulative_block_weight;
@@ -4441,9 +4463,11 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   // at MONEY_SUPPLY. already_generated_coins is only used to compute the block subsidy and MONEY_SUPPLY yields a
   // subsidy of 0 under the base formula and therefore the minimum subsidy >0 in the tail state.
   already_generated_coins = base_reward < (MONEY_SUPPLY-already_generated_coins) ? already_generated_coins + base_reward : MONEY_SUPPLY;
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   if(chain_height)
     cumulative_difficulty += m_db->get_block_cumulative_difficulty(chain_height - 1);
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   TIME_MEASURE_FINISH(block_processing_time);
   if(miner.blk_pow.precomputed)
     block_processing_time += m_fake_pow_calc_time;
@@ -4451,13 +4475,17 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   rtxn_guard.stop();
   TIME_MEASURE_START(addblock);
   uint64_t new_height = 0;
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   if (!bvc.m_verifivation_failed)
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
     try
     {
       uint64_t long_term_block_weight = get_next_long_term_block_weight(block_weight);
       cryptonote::blobdata bd = cryptonote::block_to_blob(bl);
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
       new_height = m_db->add_block(std::make_pair(std::move(bl), std::move(bd)), block_weight, long_term_block_weight, cumulative_difficulty, already_generated_coins, txs);
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
     }
     catch (const KEY_IMAGE_EXISTS& e)
     {
@@ -4481,6 +4509,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   {
     MGINFO_RED("Blocks that failed verification should not reach here");
   }
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
 
   auto abort_block = oxen::defer([&]() {
       pop_block_from_blockchain();
@@ -4497,16 +4526,19 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   // Secondly we don't use the blobs at all in the hooks, so passing it in
   // doesn't seem right.
   std::vector<transaction> only_txs;
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   only_txs.reserve(txs.size());
   for (std::pair<transaction, blobdata> const &tx_pair : txs)
     only_txs.push_back(tx_pair.first);
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   if (!m_service_node_list.block_added(bl, only_txs, checkpoint))
   {
     MGINFO_RED("Failed to add block to Service Node List.");
     bvc.m_verifivation_failed = true;
     return false;
   }
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
 
   if (!m_ons_db.add_block(bl, only_txs))
   {
@@ -4515,8 +4547,10 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
     return false;
   }
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   if ( bl.major_version >= cryptonote::network_version_19 && m_nettype != FAKECHAIN )
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - seans code" << "debug");
     //TODO sean this needs to be updated to get the service node winner for block not coinbase tx
     // Also service_node_list has a function that can do this: payout service_node_info_to_payout(crypto::public_key const &key, service_node_info const &info)
     std::vector<std::tuple<std::string, uint64_t>> contributors{0};
@@ -4533,6 +4567,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
       return false;
     }
   }
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - passed seans code" << "debug");
 
   for (BlockAddedHook* hook : m_block_added_hooks)
   {
@@ -4543,6 +4578,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
       return false;
     }
   }
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
 
   TIME_MEASURE_FINISH(addblock);
 
@@ -4552,9 +4588,11 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
     MGINFO_RED("Failed to update next cumulative weight limit");
     return false;
   }
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
 
   abort_block.cancel();
   uint64_t const fee_after_penalty = get_outs_money_amount(bl.miner_tx) - base_reward;
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   if (bl.signatures.size() == service_nodes::PULSE_BLOCK_REQUIRED_SIGNATURES)
   {
     MINFO("+++++ PULSE BLOCK SUCCESSFULLY ADDED"
@@ -4577,6 +4615,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
           ", cumulative weight: " << cumulative_block_weight <<
           ", " << block_processing_time << "(" << miner.difficulty_calc_time << "/" << miner.verify_pow_time << ")ms");
   }
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
 
   if(m_show_time_stats)
   {
@@ -4588,11 +4627,13 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   }
 
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
   bvc.m_added_to_main_chain = true;
   ++m_sync_counter;
 
   m_tx_pool.on_blockchain_inc(bl);
   invalidate_block_template_cache();
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
 
   if (notify)
   {
@@ -4601,6 +4642,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
       block_notify->notify("%s", tools::type_to_hex(id).c_str(), NULL);
   }
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - returnting true from handle block to main chaing" << "debug");
   return true;
 }
 //------------------------------------------------------------------
@@ -4720,6 +4762,7 @@ bool Blockchain::add_new_block(const block& bl, block_verification_context& bvc,
 {
 
   LOG_PRINT_L3("Blockchain::" << __func__);
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - ADDING NEW BLOCK IN BLOCKCHAIN" << "debug");
   crypto::hash id = get_block_hash(bl);
   auto lock = tools::unique_locks(m_tx_pool, *this);
   db_rtxn_guard rtxn_guard(m_db);
@@ -4728,8 +4771,10 @@ bool Blockchain::add_new_block(const block& bl, block_verification_context& bvc,
     LOG_PRINT_L3("block with id = " << id << " already exists");
     bvc.m_already_exists = true;
     m_blocks_txs_check.clear();
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - block with id already exists" << "debug");
     return false;
   }
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - " << "debug");
 
   if (checkpoint)
   {
@@ -4754,12 +4799,14 @@ bool Blockchain::add_new_block(const block& bl, block_verification_context& bvc,
   if(bl.prev_id == get_tail_id()) //check that block refers to chain tail
   {
     result = handle_block_to_main_chain(bl, id, bvc, checkpoint);
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - with handle block to main chain returned: " << result);
   }
   else
   {
     //chain switching or wrong block
     bvc.m_added_to_main_chain = false;
     result = handle_alternative_block(bl, id, bvc, checkpoint);
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - with handle block to alternate chain returned: " << result);
     m_blocks_txs_check.clear();
     //never relay alternative blocks
   }

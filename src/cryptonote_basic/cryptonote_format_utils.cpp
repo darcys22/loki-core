@@ -890,7 +890,6 @@ namespace cryptonote
   {
     //TODO sean miner size
     cryptonote::block bl = b;
-    MGINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - block " << cryptonote::obj_to_json_str(bl));
     if (b.miner_tx.vout.size() > 0)
     {
       CHECK_AND_ASSERT_MES(b.miner_tx.vin.size() == 1, 0, "wrong miner tx in block: " << get_block_hash(b) << ", b.miner_tx.vin.size() != 1 (size is: " << b.miner_tx.vin.size() << ")");
@@ -900,6 +899,7 @@ namespace cryptonote
         CHECK_AND_ASSERT_MES(coinbase_in.height == b.height, 0, "wrong miner tx in block: " << get_block_hash(b));
       }
 
+      //TODO sean change to debug
       MGINFO("getting block height old way" << coinbase_in.height);
       return coinbase_in.height;
     } else {
