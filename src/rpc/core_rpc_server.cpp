@@ -365,8 +365,6 @@ namespace cryptonote { namespace rpc {
 
     crypto::hash top_hash;
     m_core.get_blockchain_top(res.height, top_hash);
-    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
-    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, - " << res.height);
     auto prev_ts = m_core.get_blockchain_storage().get_db().get_block_timestamp(res.height);
     ++res.height; // turn top block height into blockchain height
     res.top_block_hash = tools::type_to_hex(top_hash);
@@ -496,7 +494,6 @@ namespace cryptonote { namespace rpc {
     size_t size = 0, ntxes = 0;
     res.blocks.reserve(bs.size());
     res.output_indices.reserve(bs.size());
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - RPC get blocks fast");
     for(auto& bd: bs)
     {
       res.blocks.resize(res.blocks.size()+1);
@@ -520,9 +517,7 @@ namespace cryptonote { namespace rpc {
       if (n_txes_to_lookup > 0)
       {
         std::vector<std::vector<uint64_t>> indices;
-        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - RPC get blocks fast calling get_tx_outputs_gindixes");
         bool r = m_core.get_tx_outputs_gindexs(req.no_miner_tx ? bd.second.front().first : bd.first.second, n_txes_to_lookup, indices);
-        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - result of get tx" << r); 
         if (!r || indices.size() != n_txes_to_lookup || res.output_indices.back().indices.size() != (req.no_miner_tx ? 1 : 0))
         {
           res.status = "Failed";
@@ -590,8 +585,6 @@ namespace cryptonote { namespace rpc {
       }
       std::vector<transaction> txs;
       std::vector<crypto::hash> missed_txs;
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - RPC get blockc by height: " << height);
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - RPC get blockc get transactions being called with some transactions numbering: " << blk.tx_hashes.size());
       m_core.get_transactions(blk.tx_hashes, txs, missed_txs);
       res.blocks.resize(res.blocks.size() + 1);
       res.blocks.back().block = block_to_blob(blk);
@@ -1015,8 +1008,6 @@ namespace cryptonote { namespace rpc {
       else
       {
         e.block_height = m_core.get_blockchain_storage().get_db().get_tx_block_height(tx_hash);
-        MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
-        MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, - " << e.block_height);
         e.block_timestamp = m_core.get_blockchain_storage().get_db().get_block_timestamp(e.block_height);
         e.received_timestamp = 0;
         e.double_spend_seen = false;

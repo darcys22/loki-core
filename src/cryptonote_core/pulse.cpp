@@ -1071,8 +1071,6 @@ round_state wait_for_next_block(uint64_t hf16_height, round_context &context, cr
   uint64_t prev_timestamp = 0;
   try
   {
-    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, calling block_timestamp from here");
-    MDEBUG(__FILE__ << ":" << __LINE__ << " - TODO sean remove this, - " << chain_height);
     prev_timestamp = blockchain.get_db().get_block_timestamp(chain_height - 1);
   }
   catch(std::exception const &e)

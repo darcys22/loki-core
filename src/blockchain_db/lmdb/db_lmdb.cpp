@@ -960,15 +960,12 @@ void BlockchainLMDB::remove_block()
 uint64_t BlockchainLMDB::add_transaction_data(const crypto::hash& blk_hash, const std::pair<transaction, blobdata>& txp, const crypto::hash& tx_hash, const crypto::hash& tx_prunable_hash)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - blockcahinLMDB adding transaction data");
   check_open();
   mdb_txn_cursors *m_cursors = &m_wcursors;
   uint64_t m_height = height();
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - height" << m_height);
 
   int result;
   uint64_t tx_id = get_tx_count();
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - tx_id" << tx_id);
 
   CURSOR(txs_pruned)
   CURSOR(txs_prunable)
