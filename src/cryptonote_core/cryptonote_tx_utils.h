@@ -86,6 +86,21 @@ namespace cryptonote
     uint64_t               batched_governance;   // NOTE: 0 until hardfork v10, then use blockchain::calc_batched_governance_reward
   };
 
+  enum struct reward_type
+  {
+    miner,
+    snode,
+    governance
+  };
+
+  struct reward_payout
+  {
+    reward_type            type;
+    account_public_address address;
+    uint64_t               amount;
+    bool operator==(service_nodes::payout_entry const &other) const { return address == other.address; }
+  };
+
   bool construct_miner_tx(
       size_t height,
       size_t median_weight,
@@ -96,6 +111,8 @@ namespace cryptonote
       const oxen_miner_tx_context &miner_context,
       const blobdata& extra_nonce = blobdata(),
       uint8_t hard_fork_version = 1);
+
+  bool fill_block_rewards(block &bl, std::vector<reward_payout> rewards, uint64_t &expected_reward, uint8_t version, uint64_t height);
 
   struct block_reward_parts
   {

@@ -118,8 +118,7 @@ bool BlockchainSQLite::subtract_sn_payments(cryptonote::network_type nettype, st
   return true;
 }
 
-// tuple (Address, amount)
-std::vector<std::tuple<std::string, uint64_t>> BlockchainSQLite::get_sn_payments()
+std::optional<std::vector<cryptonote::reward_payout>> BlockchainSQLite::get_sn_payments()
 {
 
   using namespace sqlite_orm;
@@ -133,11 +132,15 @@ std::vector<std::tuple<std::string, uint64_t>> BlockchainSQLite::get_sn_payments
         &cryptonote::batch_sn_payments::amount)
       );
 
-  std::vector<std::tuple<std::string, uint64_t>> payments{0};
+  std::vector<cryptonote::reward_payout> payments;
 
   for(auto &payment : result) {
     std::cout << std::get<0>(payment) << '\t' << std::get<1>(payment) << std::endl;
-    payments.push_back( std::tuple<std::string, uint64_t>(std::get<0>(payment), std::get<1>(payment)) );
+    cryptonote::address_parse_info info;
+    if (cryptonote::get_account_address_from_str(info, cryptonote::network_type::DEVNET, std::get<0>(payment)))
+      payments.emplace_back(cryptonote::reward_type::snode, info.address, std::get<1>(payment));
+    else
+      return std::nullopt;
   }
 
   return payments;

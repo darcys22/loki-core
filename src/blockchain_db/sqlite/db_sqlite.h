@@ -35,6 +35,7 @@
 
 #include "epee/misc_log_ex.h"
 #include "../../cryptonote_basic/cryptonote_format_utils.h"
+#include "../../cryptonote_core/cryptonote_tx_utils.h"
 #include "common/fs.h"
 
 #include <sqlite_orm/sqlite_orm.h>
@@ -54,7 +55,7 @@ public:
   bool subtract_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments);
 
   //get_payments -> passing a block range will return an array of payments that should be created in a transaction on that date. Possibly allow for the returned figure to include all payments between that range. Or also an optional parameter if it is “unpaid” which should be the same in most normal cases
-  std::vector<std::tuple<std::string, uint64_t>> get_sn_payments();
+  std::optional<std::vector<cryptonote::reward_payout>> get_sn_payments();
 
   std::vector<std::tuple<std::string, uint64_t>> calculate_rewards(const cryptonote::block &block, std::vector<std::tuple<std::string, uint64_t>> contributors);
 

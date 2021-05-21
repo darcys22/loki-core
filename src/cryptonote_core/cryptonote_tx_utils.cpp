@@ -242,21 +242,6 @@ namespace cryptonote
     return reward;
   }
 
-  enum struct reward_type
-  {
-    miner,
-    snode,
-    governance
-  };
-
-  struct reward_payout
-  {
-    reward_type            type;
-    account_public_address address;
-    uint64_t               amount;
-    bool operator==(service_nodes::payout_entry const &other) const { return address == other.address; }
-  };
-
   bool construct_miner_tx(
       size_t height,
       size_t median_weight,
@@ -494,6 +479,29 @@ namespace cryptonote
     return true;
   }
 
+  bool fill_block_rewards(block &bl, std::vector<reward_payout> rewards, uint64_t &expected_reward, uint8_t version, uint64_t height)
+  {
+    //TODO sean this should be from constant and check last paid time
+    if (height % 5 != 0)
+      return true;
+
+    cryptonote::transaction tx;
+
+    for (auto & service_node_reward : rewards) {
+      tx.vout.emplace_back(std::get<0>(service_node_reward), txout_to_key)
+    }
+
+    tx.type    = txtype::standard;
+    tx.version = transaction::get_max_version_for_hf(version);
+    tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
+    tx.vin.push_back(txin_gen{height});
+    tx.invalidate_hashes();
+
+    //LOG_PRINT_L2(" rewards tx added, new block weight " << total_weight << "/" << max_total_weight << ", reward " << print_money(best_reward));
+
+    return true;
+  }
+
   bool get_oxen_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, int hard_fork_version, block_reward_parts &result, const oxen_block_reward_context &oxen_context)
   {
     result = {};
@@ -531,7 +539,7 @@ namespace cryptonote
 
     uint64_t const service_node_reward = service_node_reward_formula(result.original_base_reward, hard_fork_version);
     if (hard_fork_version < cryptonote::network_version_16_pulse)
-    {
+    ea
       result.service_node_total = calculate_sum_of_portions(oxen_context.block_leader_payouts, service_node_reward);
 
       // The base_miner amount is everything left in the base reward after subtracting off the service
