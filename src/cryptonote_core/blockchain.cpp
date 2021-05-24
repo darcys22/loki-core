@@ -1654,11 +1654,21 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
   bool r = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, b.miner_tx, miner_tx_context, ex_nonce, hf_version);
 
   //TODO sean
-  auto rwds = m_sqlite_db.get_rewards(); //Rewards to pay out
-  if (!fill_block_rewards(b, rwds, expected_reward, b.major_version, height))
+
+  if (hf_version >= cryptonote::network_version_19)
   {
-    return false;
+    auto rwds = m_sqlite_db->get_sn_payments(); //Rewards to pay out
+    if (rwds)
+    {
+      if (!fill_block_rewards(b, *rwds, expected_reward, b.major_version, height) && rwds)
+      {
+        return false;
+      }
+    }
   }
+
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK: " << cryptonote::obj_to_json_str(b));
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK txn size: " << b.vout.size());
 
 
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
@@ -1712,6 +1722,7 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
     }
     b.reward = expected_reward;
     b.height = height;
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK: " << cryptonote::obj_to_json_str(b));
     //Possibly don't remove the coinbase, but see if empty coinbase will be okay
     //if (hf_version >= cryptonote::network_version_19 && b.miner_tx.vout.size() == 0)
     //{
@@ -4529,6 +4540,7 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
     }
     if (!m_sqlite_db->add_block(m_nettype, bl, only_txs, contributors))
     {
+      MINFO("Failed to add block to batch rewards DB.");
       MGINFO_RED("Failed to add block to batch rewards DB.");
       bvc.m_verifivation_failed = true;
       return false;

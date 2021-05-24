@@ -482,13 +482,20 @@ namespace cryptonote
   bool fill_block_rewards(block &bl, std::vector<reward_payout> rewards, uint64_t &expected_reward, uint8_t version, uint64_t height)
   {
     //TODO sean this should be from constant and check last paid time
-    if (height % 5 != 0)
-      return true;
+    //if (height % 5 != 0)
+      //return true;
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP STARTING FILL BLOCK REWARDS: ");
+
 
     cryptonote::transaction tx;
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP rewards size: " << rewards.size());
     for (auto & service_node_reward : rewards) {
-      tx.vout.emplace_back(std::get<0>(service_node_reward), txout_to_key)
+      cryptonote::tx_out txout;
+      txout.target = txout_to_key(service_node_reward.address.m_view_public_key);
+      txout.amount = service_node_reward.amount;
+      tx.vout.push_back(txout);
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP txout: " << cryptonote::obj_to_json_str(txout));
     }
 
     tx.type    = txtype::standard;
@@ -499,6 +506,9 @@ namespace cryptonote
 
     //LOG_PRINT_L2(" rewards tx added, new block weight " << total_weight << "/" << max_total_weight << ", reward " << print_money(best_reward));
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK: " << cryptonote::obj_to_json_str(bl));
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP txs size: " << tx.vin.size());
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP ENDING FILL BLOCK REWARDS: ");
     return true;
   }
 
@@ -539,7 +549,7 @@ namespace cryptonote
 
     uint64_t const service_node_reward = service_node_reward_formula(result.original_base_reward, hard_fork_version);
     if (hard_fork_version < cryptonote::network_version_16_pulse)
-    ea
+    {
       result.service_node_total = calculate_sum_of_portions(oxen_context.block_leader_payouts, service_node_reward);
 
       // The base_miner amount is everything left in the base reward after subtracting off the service
