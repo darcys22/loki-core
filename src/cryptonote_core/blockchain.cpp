@@ -1668,7 +1668,7 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
   }
 
   MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK: " << cryptonote::obj_to_json_str(b));
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK txn size: " << b.vout.size());
+  //MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK txn size: " << b.vout.size());
 
 
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
@@ -5127,6 +5127,7 @@ bool Blockchain::calc_batched_governance_reward(uint64_t height, uint64_t &rewar
 //    keys.
 bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete_entry> &blocks_entry, std::vector<block> &blocks)
 {
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - prepare handle incoming blocks - size of blocks: " << blocks_entry.size());
   MTRACE("Blockchain::" << __func__);
   TIME_MEASURE_START(prepare);
   uint64_t bytes = 0;
@@ -5317,6 +5318,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
       crypto::hash &tx_prefix_hash = txes[tx_index].second;
       ++tx_index;
 
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - prepare_handle_incoming_blocks");
       if (!parse_and_validate_tx_base_from_blob(tx_blob, tx))
         SCAN_TABLE_QUIT("Could not parse tx from incoming blocks.");
       cryptonote::get_transaction_prefix_hash(tx, tx_prefix_hash);

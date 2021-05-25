@@ -503,6 +503,8 @@ namespace cryptonote
     tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
     tx.vin.push_back(txin_gen{height});
     tx.invalidate_hashes();
+    const crypto::hash txid = get_transaction_hash(tx);
+    bl.tx_hashes.push_back(txid);
 
     //LOG_PRINT_L2(" rewards tx added, new block weight " << total_weight << "/" << max_total_weight << ", reward " << print_money(best_reward));
 

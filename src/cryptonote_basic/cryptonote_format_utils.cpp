@@ -211,6 +211,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool parse_and_validate_tx_base_from_blob(const std::string_view tx_blob, transaction& tx)
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - parse_and_validate_tx_base_from_blob");
     serialization::binary_string_unarchiver ba{tx_blob};
     try {
       tx.serialize_base(ba);
