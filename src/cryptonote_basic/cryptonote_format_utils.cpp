@@ -901,10 +901,10 @@ namespace cryptonote
       }
 
       //TODO sean change to debug
-      MGINFO("getting block height old way" << coinbase_in.height);
+      MGINFO("getting block height old way - height: " << coinbase_in.height);
       return coinbase_in.height;
     } else {
-      MGINFO("getting block height new way" << b.height);
+      MGINFO("getting block height new way - height:  " << b.height);
       return b.height;
     }
   }

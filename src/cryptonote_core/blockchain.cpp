@@ -1653,6 +1653,7 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
 
   bool r = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, b.miner_tx, miner_tx_context, ex_nonce, hf_version);
 
+
   //TODO sean
 
   if (hf_version >= cryptonote::network_version_19)
@@ -1660,16 +1661,28 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
     auto rwds = m_sqlite_db->get_sn_payments(); //Rewards to pay out
     if (rwds)
     {
-      if (!fill_block_rewards(b, *rwds, expected_reward, b.major_version, height) && rwds)
+      auto rewards_tx_info = fill_block_rewards(b, *rwds, expected_reward, b.major_version, height);
+
+      if (rewards_tx_info)
       {
-        return false;
+        const size_t rewards_tx_weight = get_transaction_weight((*rewards_tx_info).tx);
+        const tx_pool_options *local_opts = {};
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - adding to m tx pool: ");
+        if (m_tx_pool.add_tx((*rewards_tx_info).tx, (*rewards_tx_info).tx_hash, *(*rewards_tx_info).blob, rewards_tx_weight, (*rewards_tx_info).tvc, *local_opts, b.major_version, 0))
+        {
+          MDEBUG("reward tx added: " << (*rewards_tx_info).tx_hash);
+        }
+        else
+        {
+          if ((*rewards_tx_info).tvc.m_verifivation_failed)
+            MERROR_VER("Transaction verification failed on reward tx: " << (*rewards_tx_info).tx_hash);
+          else if ((*rewards_tx_info).tvc.m_verifivation_impossible)
+            MERROR_VER("Transaction verification impossible on reward tx: " << (*rewards_tx_info).tx_hash);
+          return false;
+        }
       }
     }
   }
-
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK: " << cryptonote::obj_to_json_str(b));
-  //MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK txn size: " << b.vout.size());
-
 
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_weight = txs_weight + get_transaction_weight(b.miner_tx);

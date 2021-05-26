@@ -238,6 +238,7 @@ namespace cryptonote
   bool tx_memory_pool::add_tx(transaction &tx, const crypto::hash &id, const cryptonote::blobdata &blob, size_t tx_weight, tx_verification_context& tvc, const tx_pool_options &opts, uint8_t hf_version,
       uint64_t *blink_rollback_height)
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
     // this should already be called with that lock, but let's make it explicit for clarity
     std::unique_lock lock{m_transactions_lock};
 
@@ -250,25 +251,30 @@ namespace cryptonote
       return false;
     }
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
     // we do not accept transactions that timed out before, unless they're
     // kept_by_block
     if (!opts.kept_by_block && m_timed_out_transactions.find(id) != m_timed_out_transactions.end())
     {
       // not clear if we should set that, since verifivation (sic) did not fail before, since
       // the tx was accepted before timing out.
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx failed");
       tvc.m_verifivation_failed = true;
       return false;
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
 
     if(!check_inputs_types_supported(tx))
     {
       tvc.m_verifivation_failed = true;
       tvc.m_invalid_input = true;
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx failed");
       return false;
     }
 
     uint64_t fee, burned;
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
     if (!get_tx_miner_fee(tx, fee, hf_version >= HF_VERSION_FEE_BURNING, &burned))
     {
       // This code is a bit convoluted: the above sets `fee`, and returns false for a pre-ringct tx
@@ -279,6 +285,7 @@ namespace cryptonote
       return false;
     }
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
     if (!opts.kept_by_block && tx.is_transfer() && !m_blockchain.check_fee(tx_weight, tx.vout.size(), fee, burned, opts))
     {
       tvc.m_verifivation_failed = true;
@@ -286,6 +293,7 @@ namespace cryptonote
       return false;
     }
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
     size_t tx_weight_limit = get_transaction_weight_limit(hf_version);
     if ((!opts.kept_by_block || hf_version >= HF_VERSION_PER_BYTE_FEE) && tx_weight > tx_weight_limit)
     {
@@ -295,6 +303,7 @@ namespace cryptonote
       return false;
     }
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
     {
       std::vector<crypto::hash> conflict_txs;
       bool double_spend = have_tx_keyimges_as_spent(tx, &conflict_txs);
@@ -338,6 +347,7 @@ namespace cryptonote
         }
       }
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
     if (!opts.kept_by_block && have_duplicated_non_standard_tx(tx, hf_version))
     {
       mark_double_spend(tx);
@@ -347,6 +357,7 @@ namespace cryptonote
       return false;
     }
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
     if (!m_blockchain.check_tx_outputs(tx, tvc))
     {
       LOG_PRINT_L1("Transaction with id= "<< id << " has at least one invalid output");
@@ -354,11 +365,13 @@ namespace cryptonote
       tvc.m_invalid_output = true;
       return false;
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
 
     // assume failure during verification steps until success is certain
     tvc.m_verifivation_failed = true;
 
     time_t receive_time = time(nullptr);
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
 
     crypto::hash max_used_block_id = null_hash;
     uint64_t max_used_block_height = 0;
@@ -453,6 +466,7 @@ namespace cryptonote
       if((meta.fee > 0 || non_standard_tx) && !opts.do_not_relay)
         tvc.m_should_be_relayed = true;
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - mpool add tx");
 
     tvc.m_verifivation_failed = false;
     m_txpool_weight += tx_weight;

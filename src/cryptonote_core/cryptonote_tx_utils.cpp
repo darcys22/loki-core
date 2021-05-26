@@ -479,7 +479,7 @@ namespace cryptonote
     return true;
   }
 
-  bool fill_block_rewards(block &bl, std::vector<reward_payout> rewards, uint64_t &expected_reward, uint8_t version, uint64_t height)
+  std::optional<cryptonote::tx_verification_batch_info> fill_block_rewards(block &bl, std::vector<reward_payout> rewards, uint64_t &expected_reward, uint8_t version, uint64_t height)
   {
     //TODO sean this should be from constant and check last paid time
     //if (height % 5 != 0)
@@ -487,31 +487,31 @@ namespace cryptonote
     MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP STARTING FILL BLOCK REWARDS: ");
 
 
-    cryptonote::transaction tx;
+    tx_verification_batch_info info;
 
     MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP rewards size: " << rewards.size());
     for (auto & service_node_reward : rewards) {
       cryptonote::tx_out txout;
       txout.target = txout_to_key(service_node_reward.address.m_view_public_key);
       txout.amount = service_node_reward.amount;
-      tx.vout.push_back(txout);
+      info.tx.vout.push_back(txout);
       MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP txout: " << cryptonote::obj_to_json_str(txout));
     }
 
-    tx.type    = txtype::standard;
-    tx.version = transaction::get_max_version_for_hf(version);
-    tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
-    tx.vin.push_back(txin_gen{height});
-    tx.invalidate_hashes();
-    const crypto::hash txid = get_transaction_hash(tx);
-    bl.tx_hashes.push_back(txid);
+    info.tx.type    = txtype::standard;
+    info.tx.version = transaction::get_max_version_for_hf(version);
+    info.tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
+    info.tx.vin.push_back(txin_gen{height});
+    info.tx.invalidate_hashes();
+    info.tx_hash = get_transaction_hash(info.tx);
+    bl.tx_hashes.push_back(info.tx_hash);
 
     //LOG_PRINT_L2(" rewards tx added, new block weight " << total_weight << "/" << max_total_weight << ", reward " << print_money(best_reward));
 
     MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK: " << cryptonote::obj_to_json_str(bl));
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP txs size: " << tx.vin.size());
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP txs size: " << info.tx.vin.size());
     MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP ENDING FILL BLOCK REWARDS: ");
-    return true;
+    return info;
   }
 
   bool get_oxen_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, int hard_fork_version, block_reward_parts &result, const oxen_block_reward_context &oxen_context)

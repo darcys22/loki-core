@@ -1301,11 +1301,11 @@ namespace cryptonote
     }
   }
   //-----------------------------------------------------------------------------------------------
-  std::vector<core::tx_verification_batch_info> core::parse_incoming_txs(const std::vector<blobdata>& tx_blobs, const tx_pool_options &opts)
+  std::vector<cryptonote::tx_verification_batch_info> core::parse_incoming_txs(const std::vector<blobdata>& tx_blobs, const tx_pool_options &opts)
   {
     // Caller needs to do this around both this *and* handle_parsed_txs
     //auto lock = incoming_tx_lock();
-    std::vector<tx_verification_batch_info> tx_info(tx_blobs.size());
+    std::vector<cryptonote::tx_verification_batch_info> tx_info(tx_blobs.size());
 
     tools::threadpool& tpool = tools::threadpool::getInstance();
     tools::threadpool::waiter waiter;
@@ -1397,7 +1397,7 @@ namespace cryptonote
     return ok;
   }
   //-----------------------------------------------------------------------------------------------
-  std::vector<core::tx_verification_batch_info> core::handle_incoming_txs(const std::vector<blobdata>& tx_blobs, const tx_pool_options &opts)
+  std::vector<cryptonote::tx_verification_batch_info> core::handle_incoming_txs(const std::vector<blobdata>& tx_blobs, const tx_pool_options &opts)
   {
     auto lock = incoming_tx_lock();
     auto parsed = parse_incoming_txs(tx_blobs, opts);
@@ -2086,13 +2086,16 @@ namespace cryptonote
     {
       cryptonote::blobdata txblob;
       CHECK_AND_ASSERT_THROW_MES(pool.get_transaction(tx_hash, txblob), "Transaction not found in pool");
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - txns blob: " << txblob);
       bce.txs.push_back(txblob);
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - getting blocks transactions size of txns: " << bce.txs.size());
     return bce;
   }
   //-----------------------------------------------------------------------------------------------
   bool core::handle_block_found(block& b, block_verification_context &bvc)
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found - block: " << cryptonote::obj_to_json_str(b));
     bvc = {};
     std::vector<block_complete_entry> blocks;
     m_miner.pause();
