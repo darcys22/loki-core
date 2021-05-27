@@ -41,6 +41,7 @@ target_link_libraries(device
     OpenSSL::Crypto
     Boost::serialization
   PRIVATE
+    sqlite_orm::sqlite_orm
     version
     extra)
 

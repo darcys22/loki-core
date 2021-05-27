@@ -913,9 +913,19 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(in), false, "wrong variant type: "
-        << tools::type_name(tools::variant_type(in)) << ", expected " << tools::type_name<txin_to_key>()
-        << ", in transaction id=" << get_transaction_hash(tx));
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - tx version: " << tx.version);
+      //if (tx.version < cryptonote::network_version_19)
+      if (false)
+      {
+        CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(in), false, "wrong variant type: "
+          << tools::type_name(tools::variant_type(in)) << ", expected " << tools::type_name<txin_to_key>()
+          << ", in transaction id=" << get_transaction_hash(tx));
+      } else {
+        //TODO sean need to check that only one input is txin
+        CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(in) || std::holds_alternative<txin_gen>(in), false, "wrong variant type: "
+          << tools::type_name(tools::variant_type(in)) << ", expected " << tools::type_name<txin_to_key>()
+          << ", in transaction id=" << get_transaction_hash(tx));
+      }
 
     }
     return true;

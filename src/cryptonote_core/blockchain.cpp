@@ -1666,9 +1666,9 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
       if (rewards_tx_info)
       {
         const size_t rewards_tx_weight = get_transaction_weight((*rewards_tx_info).tx);
-        const tx_pool_options *local_opts = {};
+        tx_pool_options local_opts = {0};
         MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - adding to m tx pool: ");
-        if (m_tx_pool.add_tx((*rewards_tx_info).tx, (*rewards_tx_info).tx_hash, *(*rewards_tx_info).blob, rewards_tx_weight, (*rewards_tx_info).tvc, *local_opts, b.major_version, 0))
+        if (m_tx_pool.add_tx((*rewards_tx_info).tx, (*rewards_tx_info).tx_hash, *(*rewards_tx_info).blob, rewards_tx_weight, (*rewards_tx_info).tvc, local_opts, b.major_version, 0))
         {
           MDEBUG("reward tx added: " << (*rewards_tx_info).tx_hash);
         }
