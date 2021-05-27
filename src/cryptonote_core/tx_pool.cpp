@@ -260,12 +260,15 @@ namespace cryptonote
       return false;
     }
 
-    if(!check_inputs_types_supported(tx))
+    bool has_txin_gen = false;
+    if(!check_inputs_types_supported(tx, has_txin_gen))
     {
       tvc.m_verifivation_failed = true;
       tvc.m_invalid_input = true;
       return false;
     }
+
+    //TODO check if has_txin_gen then it should comply with the desired correct payout of get_sn_rewards
 
     uint64_t fee, burned;
 
@@ -279,11 +282,17 @@ namespace cryptonote
       return false;
     }
 
-    if (!opts.kept_by_block && tx.is_transfer() && !m_blockchain.check_fee(tx_weight, tx.vout.size(), fee, burned, opts))
+
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - has_txin_gen: " << has_txin_gen);
+    if(hf_version < cryptonote::network_version_19 || !has_txin_gen)
     {
-      tvc.m_verifivation_failed = true;
-      tvc.m_fee_too_low = true;
-      return false;
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - checking fee");
+      if (!opts.kept_by_block && tx.is_transfer() && !m_blockchain.check_fee(tx_weight, tx.vout.size(), fee, burned, opts))
+      {
+        tvc.m_verifivation_failed = true;
+        tvc.m_fee_too_low = true;
+        return false;
+      }
     }
 
     size_t tx_weight_limit = get_transaction_weight_limit(hf_version);
@@ -1490,14 +1499,18 @@ namespace cryptonote
     bool ret = false;
     for(const auto& in: tx.vin)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(in, txin_to_key, tokey_in, true);//should never fail
-      auto it = m_spent_key_images.find(tokey_in.k_image);
-      if (it != m_spent_key_images.end())
+      //TODO sean this now can have txin_gen in the transactions do a version check here
+      if(std::holds_alternative<txin_to_key>(in))
       {
-        if (!conflicting)
-          return true;
-        ret = true;
-        conflicting->insert(conflicting->end(), it->second.begin(), it->second.end());
+        CHECKED_GET_SPECIFIC_VARIANT(in, txin_to_key, tokey_in, true);//should never fail
+        auto it = m_spent_key_images.find(tokey_in.k_image);
+        if (it != m_spent_key_images.end())
+        {
+          if (!conflicting)
+            return true;
+          ret = true;
+          conflicting->insert(conflicting->end(), it->second.begin(), it->second.end());
+        }
       }
     }
     return ret;

@@ -3132,13 +3132,14 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   std::unique_lock lock{*this};
 
   for (const auto &o: tx.vout) {
-    if (o.amount != 0) { // in a v2 tx, all outputs must have 0 amount NOTE(oxen): All oxen tx's are atleast v2 from the beginning
-      tvc.m_invalid_output = true;
-      return false;
-    }
+    //if (o.amount != 0) { // in a v2 tx, all outputs must have 0 amount NOTE(oxen): All oxen tx's are atleast v2 from the beginning
+      //tvc.m_invalid_output = true;
+      //return false;
+    //}
 
     // from hardfork v4, forbid invalid pubkeys NOTE(oxen): We started from hf7 so always execute branch
     if (auto* out_to_key = std::get_if<txout_to_key>(&o.target); out_to_key && !crypto::check_key(out_to_key->key)) {
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - checking output keys");
       tvc.m_invalid_output = true;
       return false;
     }
@@ -3219,15 +3220,16 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
 
   // Require CLSAGs starting 10 blocks after the CLSAG-enabling hard fork (the 10 block buffer is to
   // allow staggling txes around fork time to still make it into a block).
-  if (hf_version >= HF_VERSION_CLSAG
-      && tx.rct_signatures.type < rct::RCTType::CLSAG
-      && tx.version >= txversion::v4_tx_types && tx.is_transfer()
-      && (hf_version > HF_VERSION_CLSAG || get_current_blockchain_height() >= 10 + m_hardfork->get_earliest_ideal_height_for_version(HF_VERSION_CLSAG)))
-  {
-    MERROR_VER("Ringct type " << (unsigned)tx.rct_signatures.type << " is not allowed from v" << HF_VERSION_CLSAG);
-    tvc.m_invalid_output = true;
-    return false;
-  }
+  // TODO sean some form of this check needs to exist
+  //if (hf_version >= HF_VERSION_CLSAG
+      //&& tx.rct_signatures.type < rct::RCTType::CLSAG
+      //&& tx.version >= txversion::v4_tx_types && tx.is_transfer()
+      //&& (hf_version > HF_VERSION_CLSAG || get_current_blockchain_height() >= 10 + m_hardfork->get_earliest_ideal_height_for_version(HF_VERSION_CLSAG)))
+  //{
+    //MERROR_VER("Ringct type " << (unsigned)tx.rct_signatures.type << " is not allowed from v" << HF_VERSION_CLSAG);
+    //tvc.m_invalid_output = true;
+    //return false;
+  //}
 
   return true;
 }

@@ -909,7 +909,7 @@ namespace cryptonote
     }
   }
   //---------------------------------------------------------------
-  bool check_inputs_types_supported(const transaction& tx)
+  bool check_inputs_types_supported(const transaction& tx, bool& has_txin_gen)
   {
     for(const auto& in: tx.vin)
     {
@@ -921,7 +921,10 @@ namespace cryptonote
           << tools::type_name(tools::variant_type(in)) << ", expected " << tools::type_name<txin_to_key>()
           << ", in transaction id=" << get_transaction_hash(tx));
       } else {
-        //TODO sean need to check that only one input is txin
+        //TODO sean need to check that only one transaction has input that is txin
+        has_txin_gen = std::holds_alternative<txin_gen>(in);
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - has_txin_gen: " << has_txin_gen);
+
         CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(in) || std::holds_alternative<txin_gen>(in), false, "wrong variant type: "
           << tools::type_name(tools::variant_type(in)) << ", expected " << tools::type_name<txin_to_key>()
           << ", in transaction id=" << get_transaction_hash(tx));

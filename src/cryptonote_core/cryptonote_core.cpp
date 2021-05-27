@@ -1593,7 +1593,9 @@ namespace cryptonote
       }
     }
 
-    if(!check_inputs_types_supported(tx))
+    //TODO sean something here is checking tx
+    bool has_txin_gen;
+    if(!check_inputs_types_supported(tx, has_txin_gen))
     {
       MERROR_VER("unsupported input types for tx id= " << get_transaction_hash(tx));
       return false;
