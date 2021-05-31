@@ -1670,6 +1670,7 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
         MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - adding to m tx pool: ");
         if (m_tx_pool.add_tx((*rewards_tx_info).tx, (*rewards_tx_info).tx_hash, *(*rewards_tx_info).blob, rewards_tx_weight, (*rewards_tx_info).tvc, local_opts, b.major_version, 0))
         {
+          MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - successfully added to m tx pool: ");
           MDEBUG("reward tx added: " << (*rewards_tx_info).tx_hash);
         }
         else
@@ -3139,7 +3140,6 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
 
     // from hardfork v4, forbid invalid pubkeys NOTE(oxen): We started from hf7 so always execute branch
     if (auto* out_to_key = std::get_if<txout_to_key>(&o.target); out_to_key && !crypto::check_key(out_to_key->key)) {
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - checking output keys");
       tvc.m_invalid_output = true;
       return false;
     }
@@ -3249,6 +3249,10 @@ bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_pr
 {
   PERF_TIMER(expand_transaction_2);
   CHECK_AND_ASSERT_MES(tx.version >= txversion::v2_ringct, false, "Transaction version is not 2 or greater");
+
+  //TODO sean does this do something important for batch reward transactions? Can I skip safely?
+  if (std::holds_alternative<txin_gen>(tx.vin[0]))
+    return true;
 
   rct::rctSig &rv = tx.rct_signatures;
 
@@ -3360,7 +3364,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
   if (tx.is_transfer())
   {
-    if (tx.type != txtype::oxen_name_system && hf_version >= HF_VERSION_MIN_2_OUTPUTS && tx.vout.size() < 2)
+    if (tx.type != txtype::oxen_name_system && !std::holds_alternative<txin_gen>(tx.vin[0]) && hf_version >= HF_VERSION_MIN_2_OUTPUTS && tx.vout.size() < 2)
     {
       MERROR_VER("Tx " << get_transaction_hash(tx) << " has fewer than two outputs, which is not allowed as of hardfork " << +HF_VERSION_MIN_2_OUTPUTS);
       tvc.m_too_few_outputs = true;
@@ -3380,80 +3384,85 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       // Monero Checks
       //
       // make sure output being spent is of type txin_to_key, rather than e.g.  txin_gen, which is only used for miner transactions
-      CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(txin), false, "wrong type id in tx input at Blockchain::check_tx_inputs");
-      const txin_to_key& in_to_key = var::get<txin_to_key>(txin);
+      if (hf_version < cryptonote::network_version_19 || !std::holds_alternative<txin_gen>(txin))
       {
-        // make sure tx output has key offset(s) (is signed to be used)
-        CHECK_AND_ASSERT_MES(in_to_key.key_offsets.size(), false, "empty in_to_key.key_offsets in transaction with id " << get_transaction_hash(tx));
-
-        // Mixin Check, from hard fork 7, we require mixin at least 9, always.
-        if (in_to_key.key_offsets.size() - 1 != CRYPTONOTE_DEFAULT_TX_MIXIN)
+        CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(txin), false, "wrong type id in tx input at Blockchain::check_tx_inputs");
+        const txin_to_key& in_to_key = var::get<txin_to_key>(txin);
         {
-          MERROR_VER("Tx " << get_transaction_hash(tx) << " has incorrect ring size (" << in_to_key.key_offsets.size() - 1 << ", expected (" << CRYPTONOTE_DEFAULT_TX_MIXIN << ")");
-          tvc.m_low_mixin = true;
-          return false;
-        }
+          // make sure tx output has key offset(s) (is signed to be used)
+          CHECK_AND_ASSERT_MES(in_to_key.key_offsets.size(), false, "empty in_to_key.key_offsets in transaction with id " << get_transaction_hash(tx));
 
-        // from v7, sorted ins
-        {
-          if (last_key_image && memcmp(&in_to_key.k_image, last_key_image, sizeof(*last_key_image)) >= 0)
+          // Mixin Check, from hard fork 7, we require mixin at least 9, always.
+          if (in_to_key.key_offsets.size() - 1 != CRYPTONOTE_DEFAULT_TX_MIXIN)
           {
-            MERROR_VER("transaction has unsorted inputs");
-            tvc.m_verifivation_failed = true;
+            MERROR_VER("Tx " << get_transaction_hash(tx) << " has incorrect ring size (" << in_to_key.key_offsets.size() - 1 << ", expected (" << CRYPTONOTE_DEFAULT_TX_MIXIN << ")");
+            tvc.m_low_mixin = true;
             return false;
           }
-          last_key_image = &in_to_key.k_image;
-        }
 
-        if(have_tx_keyimg_as_spent(in_to_key.k_image))
-        {
-          MERROR_VER("Key image already spent in blockchain: " << tools::type_to_hex(in_to_key.k_image));
-          if (key_image_conflicts)
-            key_image_conflicts->insert(in_to_key.k_image);
-          else
+          // from v7, sorted ins
           {
-            tvc.m_double_spend = true;
-            return false;
-          }
-        }
-
-        // make sure that output being spent matches up correctly with the
-        // signature spending it.
-        if (!check_tx_input(in_to_key, tx_prefix_hash, pubkeys[sig_index], pmax_used_block_height))
-        {
-          MERROR_VER("Failed to check ring signature for tx " << get_transaction_hash(tx) << "  vin key with k_image: " << in_to_key.k_image << "  sig_index: " << sig_index);
-          if (pmax_used_block_height) // a default value of NULL is used when called from Blockchain::handle_block_to_main_chain()
-          {
-            MERROR_VER("  *pmax_used_block_height: " << *pmax_used_block_height);
+            if (last_key_image && memcmp(&in_to_key.k_image, last_key_image, sizeof(*last_key_image)) >= 0)
+            {
+              MERROR_VER("transaction has unsorted inputs");
+              tvc.m_verifivation_failed = true;
+              return false;
+            }
+            last_key_image = &in_to_key.k_image;
           }
 
-          return false;
-        }
-      }
-
-      //
-      // Service Node Checks
-      //
-      if (hf_version >= cryptonote::network_version_11_infinite_staking)
-      {
-        const auto &blacklist = m_service_node_list.get_blacklisted_key_images();
-        for (const auto &entry : blacklist)
-        {
-          if (in_to_key.k_image == entry.key_image) // Check if key image is on the blacklist
+          if(have_tx_keyimg_as_spent(in_to_key.k_image))
           {
-            MERROR_VER("Key image: " << tools::type_to_hex(entry.key_image) << " is blacklisted by the service node network");
-            tvc.m_key_image_blacklisted = true;
+            MERROR_VER("Key image already spent in blockchain: " << tools::type_to_hex(in_to_key.k_image));
+            if (key_image_conflicts)
+              key_image_conflicts->insert(in_to_key.k_image);
+            else
+            {
+              tvc.m_double_spend = true;
+              return false;
+            }
+          }
+
+          // make sure that output being spent matches up correctly with the
+          // signature spending it.
+          if (!check_tx_input(in_to_key, tx_prefix_hash, pubkeys[sig_index], pmax_used_block_height))
+          {
+            MERROR_VER("Failed to check ring signature for tx " << get_transaction_hash(tx) << "  vin key with k_image: " << in_to_key.k_image << "  sig_index: " << sig_index);
+            if (pmax_used_block_height) // a default value of NULL is used when called from Blockchain::handle_block_to_main_chain()
+            {
+              MERROR_VER("  *pmax_used_block_height: " << *pmax_used_block_height);
+            }
+
             return false;
           }
         }
 
-        uint64_t unlock_height = 0;
-        if (m_service_node_list.is_key_image_locked(in_to_key.k_image, &unlock_height))
+        //
+        // Service Node Checks
+        //
+        if (hf_version >= cryptonote::network_version_11_infinite_staking)
         {
-          MERROR_VER("Key image: " << tools::type_to_hex(in_to_key.k_image) << " is locked in a stake until height: " << unlock_height);
-          tvc.m_key_image_locked_by_snode = true;
-          return false;
+          const auto &blacklist = m_service_node_list.get_blacklisted_key_images();
+          for (const auto &entry : blacklist)
+          {
+            if (in_to_key.k_image == entry.key_image) // Check if key image is on the blacklist
+            {
+              MERROR_VER("Key image: " << tools::type_to_hex(entry.key_image) << " is blacklisted by the service node network");
+              tvc.m_key_image_blacklisted = true;
+              return false;
+            }
+          }
+
+          uint64_t unlock_height = 0;
+          if (m_service_node_list.is_key_image_locked(in_to_key.k_image, &unlock_height))
+          {
+            MERROR_VER("Key image: " << tools::type_to_hex(in_to_key.k_image) << " is locked in a stake until height: " << unlock_height);
+            tvc.m_key_image_locked_by_snode = true;
+            return false;
+          }
         }
+      } else {
+        //TODO sean check that txin_gen is valid for HF19
       }
     }
 
@@ -3477,8 +3486,12 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     {
     case rct::RCTType::Null: {
       // we only accept no signatures for coinbase txes
-      MERROR_VER("Null rct signature on non-coinbase tx");
-      return false;
+      if (!std::holds_alternative<txin_gen>(tx.vin[0]))
+      {
+        MERROR_VER("Null rct signature on non-coinbase tx");
+        return false;
+      }
+      break;
     }
     case rct::RCTType::Simple:
     case rct::RCTType::Bulletproof:
@@ -5142,7 +5155,6 @@ bool Blockchain::calc_batched_governance_reward(uint64_t height, uint64_t &rewar
 //    keys.
 bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete_entry> &blocks_entry, std::vector<block> &blocks)
 {
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - prepare handle incoming blocks - size of blocks: " << blocks_entry.size());
   MTRACE("Blockchain::" << __func__);
   TIME_MEASURE_START(prepare);
   uint64_t bytes = 0;
@@ -5333,7 +5345,6 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
       crypto::hash &tx_prefix_hash = txes[tx_index].second;
       ++tx_index;
 
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - prepare_handle_incoming_blocks");
       if (!parse_and_validate_tx_base_from_blob(tx_blob, tx))
         SCAN_TABLE_QUIT("Could not parse tx from incoming blocks.");
       cryptonote::get_transaction_prefix_hash(tx, tx_prefix_hash);
@@ -5487,6 +5498,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
 
 void Blockchain::add_txpool_tx(const crypto::hash &txid, const cryptonote::blobdata &blob, const txpool_tx_meta_t &meta)
 {
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - blockchain add txpool tx");
   m_db->add_txpool_tx(txid, blob, meta);
 }
 

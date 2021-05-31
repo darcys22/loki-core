@@ -283,10 +283,9 @@ namespace cryptonote
     }
 
 
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - has_txin_gen: " << has_txin_gen);
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add tx");
     if(hf_version < cryptonote::network_version_19 || !has_txin_gen)
     {
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - checking fee");
       if (!opts.kept_by_block && tx.is_transfer() && !m_blockchain.check_fee(tx_weight, tx.vout.size(), fee, burned, opts))
       {
         tvc.m_verifivation_failed = true;
@@ -294,6 +293,7 @@ namespace cryptonote
         return false;
       }
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add tx");
 
     size_t tx_weight_limit = get_transaction_weight_limit(hf_version);
     if ((!opts.kept_by_block || hf_version >= HF_VERSION_PER_BYTE_FEE) && tx_weight > tx_weight_limit)
@@ -304,6 +304,7 @@ namespace cryptonote
       return false;
     }
 
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add tx");
     {
       std::vector<crypto::hash> conflict_txs;
       bool double_spend = have_tx_keyimges_as_spent(tx, &conflict_txs);
@@ -446,7 +447,9 @@ namespace cryptonote
         std::unique_lock b_lock{m_blockchain};
         LockedTXN lock(m_blockchain);
         m_blockchain.remove_txpool_tx(id);
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - inputs okay");
         m_blockchain.add_txpool_tx(id, blob, meta);
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - inputs okay");
         if (!insert_key_images(tx, id, opts.kept_by_block))
           return false;
         m_txs_by_fee_and_receive_time.emplace(std::tuple<bool, double, std::time_t>(non_standard_tx, fee / (double)(tx_weight ? tx_weight : 1), receive_time), id);
@@ -462,6 +465,7 @@ namespace cryptonote
       if((meta.fee > 0 || non_standard_tx) && !opts.do_not_relay)
         tvc.m_should_be_relayed = true;
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add tx");
 
     tvc.m_verifivation_failed = false;
     m_txpool_weight += tx_weight;
@@ -469,12 +473,14 @@ namespace cryptonote
     ++m_cookie;
 
     MINFO("Transaction added to pool: txid " << id << " weight: " << tx_weight << " fee/byte: " << (fee / (double)(tx_weight ? tx_weight : 1)));
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add tx");
 
     if (!opts.kept_by_block && !opts.do_not_relay)
       for (auto& notify : m_tx_notify)
         notify(id, tx, blob, opts);
 
     prune(id);
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add tx");
 
     return true;
   }
@@ -1686,6 +1692,7 @@ end:
     }
 
     //transaction is ok.
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - is transaction ready to go yes");
     return true;
   }
   //---------------------------------------------------------------------------------

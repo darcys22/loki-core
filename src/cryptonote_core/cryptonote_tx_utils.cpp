@@ -38,6 +38,7 @@
 #include "blockchain.h"
 #include "cryptonote_basic/miner.h"
 #include "cryptonote_basic/tx_extra.h"
+#include "cryptonote_basic/cryptonote_format_utils.h"
 #include "crypto/crypto.h"
 #include "crypto/hash.h"
 #include "ringct/rctSigs.h"
@@ -505,6 +506,8 @@ namespace cryptonote
     info.tx.invalidate_hashes();
     info.tx_hash = get_transaction_hash(info.tx);
     bl.tx_hashes.push_back(info.tx_hash);
+    cryptonote::blobdata blob = cryptonote::tx_to_blob(info.tx);
+    info.blob = &blob;
 
     //LOG_PRINT_L2(" rewards tx added, new block weight " << total_weight << "/" << max_total_weight << ", reward " << print_money(best_reward));
 
