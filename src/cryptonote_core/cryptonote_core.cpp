@@ -2147,7 +2147,9 @@ namespace cryptonote
       arg.current_blockchain_height                 = m_blockchain_storage.get_current_blockchain_height();
       arg.b                                         = blocks[0];
 
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found about to relay block");
       m_pprotocol->relay_block(arg, exclude_context);
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found after relay block");
     }
     return true;
   }

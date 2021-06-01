@@ -131,8 +131,10 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool expand_transaction_1(transaction &tx, bool base_only)
   {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - expand_transaction");
     if (tx.version >= txversion::v2_ringct && !is_coinbase(tx))
     {
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - is not a coinbase");
       rct::rctSig &rv = tx.rct_signatures;
       if (rv.type == rct::RCTType::Null)
         return true;
@@ -180,6 +182,7 @@ namespace cryptonote
         }
       }
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - end expand");
     return true;
   }
 
@@ -219,8 +222,10 @@ namespace cryptonote
       LOG_ERROR("Failed to parse transaction base from blob: " << e.what());
       return false;
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - parse_and_validate_tx_base_from_blob");
     CHECK_AND_ASSERT_MES(expand_transaction_1(tx, true), false, "Failed to expand transaction data");
     tx.invalidate_hashes();
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - parse_and_validate_tx_base_from_blob");
     return true;
   }
   //---------------------------------------------------------------
@@ -913,7 +918,6 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - tx version: " << tx.version);
       //if (tx.version < cryptonote::network_version_19)
       if (false)
       {
@@ -923,7 +927,6 @@ namespace cryptonote
       } else {
         //TODO sean need to check that only one transaction has input that is txin
         has_txin_gen = std::holds_alternative<txin_gen>(in);
-        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - has_txin_gen: " << has_txin_gen);
 
         CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(in) || std::holds_alternative<txin_gen>(in), false, "wrong variant type: "
           << tools::type_name(tools::variant_type(in)) << ", expected " << tools::type_name<txin_to_key>()

@@ -513,6 +513,7 @@ namespace cryptonote
       ++m_hashes;
       ++m_total_hashes;
     }
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - exiting miner block found part");
     rx_slow_hash_free_state();
     MGINFO("Miner thread stopped ["<< th_local_index << "]");
     if (call_stop)

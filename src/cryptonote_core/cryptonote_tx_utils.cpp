@@ -485,18 +485,15 @@ namespace cryptonote
     //TODO sean this should be from constant and check last paid time
     //if (height % 5 != 0)
       //return true;
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP STARTING FILL BLOCK REWARDS: ");
 
 
     tx_verification_batch_info info;
 
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP rewards size: " << rewards.size());
     for (auto & service_node_reward : rewards) {
       cryptonote::tx_out txout;
       txout.target = txout_to_key(service_node_reward.address.m_view_public_key);
       txout.amount = service_node_reward.amount;
       info.tx.vout.push_back(txout);
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP txout: " << cryptonote::obj_to_json_str(txout));
     }
 
     info.tx.type    = txtype::standard;
@@ -506,14 +503,8 @@ namespace cryptonote
     info.tx.invalidate_hashes();
     info.tx_hash = get_transaction_hash(info.tx);
     bl.tx_hashes.push_back(info.tx_hash);
-    cryptonote::blobdata blob = cryptonote::tx_to_blob(info.tx);
-    info.blob = &blob;
-
     //LOG_PRINT_L2(" rewards tx added, new block weight " << total_weight << "/" << max_total_weight << ", reward " << print_money(best_reward));
 
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP BLOCK: " << cryptonote::obj_to_json_str(bl));
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP txs size: " << info.tx.vin.size());
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP ENDING FILL BLOCK REWARDS: ");
     return info;
   }
 

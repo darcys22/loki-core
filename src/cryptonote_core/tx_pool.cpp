@@ -283,7 +283,6 @@ namespace cryptonote
     }
 
 
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add tx");
     if(hf_version < cryptonote::network_version_19 || !has_txin_gen)
     {
       if (!opts.kept_by_block && tx.is_transfer() && !m_blockchain.check_fee(tx_weight, tx.vout.size(), fee, burned, opts))
@@ -293,7 +292,6 @@ namespace cryptonote
         return false;
       }
     }
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add tx");
 
     size_t tx_weight_limit = get_transaction_weight_limit(hf_version);
     if ((!opts.kept_by_block || hf_version >= HF_VERSION_PER_BYTE_FEE) && tx_weight > tx_weight_limit)
@@ -304,7 +302,6 @@ namespace cryptonote
       return false;
     }
 
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add tx");
     {
       std::vector<crypto::hash> conflict_txs;
       bool double_spend = have_tx_keyimges_as_spent(tx, &conflict_txs);
@@ -447,9 +444,8 @@ namespace cryptonote
         std::unique_lock b_lock{m_blockchain};
         LockedTXN lock(m_blockchain);
         m_blockchain.remove_txpool_tx(id);
-        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - inputs okay");
         m_blockchain.add_txpool_tx(id, blob, meta);
-        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - inputs okay");
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - add to txpool successfully: " << id);
         if (!insert_key_images(tx, id, opts.kept_by_block))
           return false;
         m_txs_by_fee_and_receive_time.emplace(std::tuple<bool, double, std::time_t>(non_standard_tx, fee / (double)(tx_weight ? tx_weight : 1), receive_time), id);
@@ -843,13 +839,17 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(in, txin_to_key, txin, false);
-      std::unordered_set<crypto::hash>& kei_image_set = m_spent_key_images[txin.k_image];
-      CHECK_AND_ASSERT_MES(kept_by_block || kei_image_set.size() == 0, false, "internal error: kept_by_block=" << kept_by_block
-                                          << ",  kei_image_set.size()=" << kei_image_set.size() << "\ntxin.k_image=" << txin.k_image
-                                          << "\ntx_id=" << id );
-      auto ins_res = kei_image_set.insert(id);
-      CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in key_image set");
+      //TODO sean make this 19 or greater
+      if(!std::holds_alternative<txin_gen>(in))
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, txin_to_key, txin, false);
+        std::unordered_set<crypto::hash>& kei_image_set = m_spent_key_images[txin.k_image];
+        CHECK_AND_ASSERT_MES(kept_by_block || kei_image_set.size() == 0, false, "internal error: kept_by_block=" << kept_by_block
+                                            << ",  kei_image_set.size()=" << kei_image_set.size() << "\ntxin.k_image=" << txin.k_image
+                                            << "\ntx_id=" << id );
+        auto ins_res = kei_image_set.insert(id);
+        CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in key_image set");
+      }
     }
     ++m_cookie;
     return true;

@@ -1827,7 +1827,6 @@ void BlockchainLMDB::unlock()
 void BlockchainLMDB::add_txpool_tx(const crypto::hash &txid, const cryptonote::blobdata &blob, const txpool_tx_meta_t &meta)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - LMDB add txpool tx");
   check_open();
   mdb_txn_cursors *m_cursors = &m_wcursors;
 
@@ -1842,7 +1841,6 @@ void BlockchainLMDB::add_txpool_tx(const crypto::hash &txid, const cryptonote::b
     else
       throw1(DB_ERROR(lmdb_error("Error adding txpool tx metadata to db transaction: ", result).c_str()));
   }
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - LMDB add txpool tx");
   MDB_val_sized(blob_val, blob);
   if (auto result = mdb_cursor_put(m_cur_txpool_blob, &k, &blob_val, MDB_NODUPDATA)) {
     if (result == MDB_KEYEXIST)
@@ -1850,7 +1848,6 @@ void BlockchainLMDB::add_txpool_tx(const crypto::hash &txid, const cryptonote::b
     else
       throw1(DB_ERROR(lmdb_error("Error adding txpool tx blob to db transaction: ", result).c_str()));
   }
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - LMDB add txpool tx");
 }
 
 void BlockchainLMDB::update_txpool_tx(const crypto::hash &txid, const txpool_tx_meta_t &meta)
