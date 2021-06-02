@@ -214,7 +214,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool parse_and_validate_tx_base_from_blob(const std::string_view tx_blob, transaction& tx)
   {
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - parse_and_validate_tx_base_from_blob");
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - return from parse_and_validate_tx_base_from_blob");
     serialization::binary_string_unarchiver ba{tx_blob};
     try {
       tx.serialize_base(ba);
@@ -225,7 +225,8 @@ namespace cryptonote
     MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - parse_and_validate_tx_base_from_blob");
     CHECK_AND_ASSERT_MES(expand_transaction_1(tx, true), false, "Failed to expand transaction data");
     tx.invalidate_hashes();
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - parse_and_validate_tx_base_from_blob");
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - end parse tx from blob tx: " << cryptonote::obj_to_json_str(tx));
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - end parse tx vout size: " << tx.vout.size());
     return true;
   }
   //---------------------------------------------------------------
@@ -904,12 +905,8 @@ namespace cryptonote
       {
         CHECK_AND_ASSERT_MES(coinbase_in.height == b.height, 0, "wrong miner tx in block: " << get_block_hash(b));
       }
-
-      //TODO sean change to debug
-      MGINFO("getting block height old way - height: " << coinbase_in.height);
       return coinbase_in.height;
     } else {
-      MGINFO("getting block height new way - height:  " << b.height);
       return b.height;
     }
   }

@@ -208,7 +208,11 @@ namespace cryptonote
       FIELD(vin)
       FIELD(vout)
       if (version >= txversion::v3_per_output_unlock_times && vout.size() != output_unlock_times.size())
+      {
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - vout.size(): " << vout.size());
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - output unlock times.size(): " << output_unlock_times.size());
         throw std::invalid_argument{"v3 tx without correct unlock times"};
+      }
       FIELD(extra)
       if (version >= txversion::v4_tx_types)
         ENUM_FIELD_N("type", type, type < txtype::_count);

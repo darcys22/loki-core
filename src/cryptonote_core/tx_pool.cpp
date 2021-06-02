@@ -439,6 +439,7 @@ namespace cryptonote
 
       try
       {
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - AAAAAAAAAA - adding tx to txpool: " << cryptonote::obj_to_json_str(tx));
         if (opts.kept_by_block)
           m_parsed_tx_cache.insert(std::make_pair(id, tx));
         std::unique_lock b_lock{m_blockchain};
@@ -865,22 +866,25 @@ namespace cryptonote
     // ND: Speedup
     for(const txin_v& vi: tx.vin)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(vi, txin_to_key, txin, false);
-      auto it = m_spent_key_images.find(txin.k_image);
-      CHECK_AND_ASSERT_MES(it != m_spent_key_images.end(), false, "failed to find transaction input in key images. img=" << txin.k_image
-                                    << "\ntransaction id = " << actual_hash);
-      std::unordered_set<crypto::hash>& key_image_set =  it->second;
-      CHECK_AND_ASSERT_MES(key_image_set.size(), false, "empty key_image set, img=" << txin.k_image
-        << "\ntransaction id = " << actual_hash);
-
-      auto it_in_set = key_image_set.find(actual_hash);
-      CHECK_AND_ASSERT_MES(it_in_set != key_image_set.end(), false, "transaction id not found in key_image set, img=" << txin.k_image
-        << "\ntransaction id = " << actual_hash);
-      key_image_set.erase(it_in_set);
-      if(!key_image_set.size())
+      if (!std::holds_alternative<txin_gen>(vi))
       {
-        //it is now empty hash container for this key_image
-        m_spent_key_images.erase(it);
+        CHECKED_GET_SPECIFIC_VARIANT(vi, txin_to_key, txin, false);
+        auto it = m_spent_key_images.find(txin.k_image);
+        CHECK_AND_ASSERT_MES(it != m_spent_key_images.end(), false, "failed to find transaction input in key images. img=" << txin.k_image
+                                      << "\ntransaction id = " << actual_hash);
+        std::unordered_set<crypto::hash>& key_image_set =  it->second;
+        CHECK_AND_ASSERT_MES(key_image_set.size(), false, "empty key_image set, img=" << txin.k_image
+          << "\ntransaction id = " << actual_hash);
+
+        auto it_in_set = key_image_set.find(actual_hash);
+        CHECK_AND_ASSERT_MES(it_in_set != key_image_set.end(), false, "transaction id not found in key_image set, img=" << txin.k_image
+          << "\ntransaction id = " << actual_hash);
+        key_image_set.erase(it_in_set);
+        if(!key_image_set.size())
+        {
+          //it is now empty hash container for this key_image
+          m_spent_key_images.erase(it);
+        }
       }
 
     }

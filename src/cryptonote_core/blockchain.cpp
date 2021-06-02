@@ -1627,35 +1627,14 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
 
   CHECK_AND_ASSERT_MES(diffic, false, "difficulty overhead.");
 
+  uint8_t hf_version = b.major_version;
   size_t txs_weight;
   uint64_t fee;
-  if (!m_tx_pool.fill_block_template(b, median_weight, already_generated_coins, txs_weight, fee, expected_reward, b.major_version, height))
-  {
-    return false;
-  }
-  pool_cookie = m_tx_pool.cookie();
-
-  /*
-   two-phase miner transaction generation: we don't know exact block weight until we prepare block, but we don't know reward until we know
-   block weight, so first miner transaction generated with fake amount of money, and with phase we know think we know expected block weight
-   */
-  //make blocks coin-base tx looks close to real coinbase tx to get truthful blob weight
-  uint8_t hf_version = b.major_version;
-  auto miner_tx_context =
-      info.is_miner
-          ? oxen_miner_tx_context::miner_block(m_nettype, info.miner_address, m_service_node_list.get_block_leader())
-          : oxen_miner_tx_context::pulse_block(m_nettype, info.service_node_payout, m_service_node_list.get_block_leader());
-  if (!calc_batched_governance_reward(height, miner_tx_context.batched_governance))
-  {
-    LOG_ERROR("Failed to calculate batched governance reward");
-    return false;
-  }
-
-  bool r = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, b.miner_tx, miner_tx_context, ex_nonce, hf_version);
 
 
   //TODO sean
 
+  // Add SN rewards to the block
   if (hf_version >= cryptonote::network_version_19)
   {
     auto rwds = m_sqlite_db->get_sn_payments(); //Rewards to pay out
@@ -1684,6 +1663,31 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
       }
     }
   }
+
+  // Add transactions in mempool to block
+  if (!m_tx_pool.fill_block_template(b, median_weight, already_generated_coins, txs_weight, fee, expected_reward, b.major_version, height))
+  {
+    return false;
+  }
+  pool_cookie = m_tx_pool.cookie();
+
+  /*
+   two-phase miner transaction generation: we don't know exact block weight until we prepare block, but we don't know reward until we know
+   block weight, so first miner transaction generated with fake amount of money, and with phase we know think we know expected block weight
+   */
+  //make blocks coin-base tx looks close to real coinbase tx to get truthful blob weight
+  auto miner_tx_context =
+      info.is_miner
+          ? oxen_miner_tx_context::miner_block(m_nettype, info.miner_address, m_service_node_list.get_block_leader())
+          : oxen_miner_tx_context::pulse_block(m_nettype, info.service_node_payout, m_service_node_list.get_block_leader());
+  if (!calc_batched_governance_reward(height, miner_tx_context.batched_governance))
+  {
+    LOG_ERROR("Failed to calculate batched governance reward");
+    return false;
+  }
+
+  bool r = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, b.miner_tx, miner_tx_context, ex_nonce, hf_version);
+
 
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_weight = txs_weight + get_transaction_weight(b.miner_tx);
@@ -2040,10 +2044,12 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
         cryptonote::transaction tx;
         if (!cryptonote::parse_and_validate_tx_base_from_blob(blob, tx))
         {
+          MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - return from parse_and_validate_tx_base_from_blob");
           MERROR_VER("Block with id: " << tools::type_to_hex(id) << " (as alternative) refers to unparsable transaction hash " << txid << ".");
           bvc.m_verifivation_failed = true;
           return false;
         }
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - return from parse_and_validate_tx_base_from_blob");
         alt_data.cumulative_weight += cryptonote::get_pruned_transaction_weight(tx);
       }
       else
@@ -5346,7 +5352,11 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
       ++tx_index;
 
       if (!parse_and_validate_tx_base_from_blob(tx_blob, tx))
+      {
+        MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - return from parse_and_validate_tx_base_from_blob");
         SCAN_TABLE_QUIT("Could not parse tx from incoming blocks.");
+      }
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - return from parse_and_validate_tx_base_from_blob");
       cryptonote::get_transaction_prefix_hash(tx, tx_prefix_hash);
 
       auto its = m_scan_table.find(tx_prefix_hash);
@@ -5357,24 +5367,31 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
       its = m_scan_table.find(tx_prefix_hash);
       assert(its != m_scan_table.end());
 
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - debug");
       // get all amounts from tx.vin(s)
       for (const auto &txin : tx.vin)
       {
-        const auto& in_to_key = var::get<txin_to_key>(txin);
 
-        // check for duplicate
-        auto it = its->second.find(in_to_key.k_image);
-        if (it != its->second.end())
-          SCAN_TABLE_QUIT("Duplicate key_image found from incoming blocks.");
+        if (!std::holds_alternative<txin_gen>(txin))
+        {
+          const auto& in_to_key = var::get<txin_to_key>(txin);
 
-        amounts.push_back(in_to_key.amount);
+          // check for duplicate
+          auto it = its->second.find(in_to_key.k_image);
+          if (it != its->second.end())
+            SCAN_TABLE_QUIT("Duplicate key_image found from incoming blocks.");
+
+          amounts.push_back(in_to_key.amount);
+        }
       }
 
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - debug");
       // sort and remove duplicate amounts from amounts list
       std::sort(amounts.begin(), amounts.end());
       auto last = std::unique(amounts.begin(), amounts.end());
       amounts.erase(last, amounts.end());
 
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - debug");
       // add amount to the offset_map and tx_map
       for (const uint64_t &amount : amounts)
       {
@@ -5384,21 +5401,26 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
         if (tx_map.find(amount) == tx_map.end())
           tx_map.emplace(amount, std::vector<output_data_t>());
       }
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - debug");
 
       // add new absolute_offsets to offset_map
       for (const auto &txin : tx.vin)
       {
-        const auto& in_to_key = var::get<txin_to_key>(txin);
-        // no need to check for duplicate here.
-        auto absolute_offsets = relative_output_offsets_to_absolute(in_to_key.key_offsets);
-        for (const auto & offset : absolute_offsets)
-          offset_map[in_to_key.amount].push_back(offset);
+        if (!std::holds_alternative<txin_gen>(txin))
+        {
+          const auto& in_to_key = var::get<txin_to_key>(txin);
+          // no need to check for duplicate here.
+          auto absolute_offsets = relative_output_offsets_to_absolute(in_to_key.key_offsets);
+          for (const auto & offset : absolute_offsets)
+            offset_map[in_to_key.amount].push_back(offset);
+        }
 
       }
     }
     ++block_index;
   }
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - debug");
   // sort and remove duplicate absolute_offsets in offset_map
   for (auto &offsets : offset_map)
   {
@@ -5407,11 +5429,13 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
     offsets.second.erase(last, offsets.second.end());
   }
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - debug");
   // gather all the output keys
   threads = tpool.get_max_concurrency();
   if (!m_db->can_thread_bulk_indices())
     threads = 1;
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - debug");
   if (threads > 1 && amounts.size() > 1)
   {
     tools::threadpool::waiter waiter;
@@ -5433,6 +5457,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
     }
   }
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - debug");
   // now generate a table for each tx_prefix and k_image hashes
   tx_index = 0;
   for (const auto &entry : blocks_entry)
@@ -5454,33 +5479,36 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
 
       for (const auto &txin : tx.vin)
       {
-        const txin_to_key &in_to_key = var::get<txin_to_key>(txin);
-        auto needed_offsets = relative_output_offsets_to_absolute(in_to_key.key_offsets);
-
-        std::vector<output_data_t> outputs;
-        for (const uint64_t & offset_needed : needed_offsets)
+        if (!std::holds_alternative<txin_gen>(txin))
         {
-          size_t pos = 0;
-          bool found = false;
+          const txin_to_key &in_to_key = var::get<txin_to_key>(txin);
+          auto needed_offsets = relative_output_offsets_to_absolute(in_to_key.key_offsets);
 
-          for (const uint64_t &offset_found : offset_map[in_to_key.amount])
+          std::vector<output_data_t> outputs;
+          for (const uint64_t & offset_needed : needed_offsets)
           {
-            if (offset_needed == offset_found)
+            size_t pos = 0;
+            bool found = false;
+
+            for (const uint64_t &offset_found : offset_map[in_to_key.amount])
             {
-              found = true;
-              break;
+              if (offset_needed == offset_found)
+              {
+                found = true;
+                break;
+              }
+
+              ++pos;
             }
 
-            ++pos;
+            if (found && pos < tx_map[in_to_key.amount].size())
+              outputs.push_back(tx_map[in_to_key.amount].at(pos));
+            else
+              break;
           }
 
-          if (found && pos < tx_map[in_to_key.amount].size())
-            outputs.push_back(tx_map[in_to_key.amount].at(pos));
-          else
-            break;
+          its->second.emplace(in_to_key.k_image, outputs);
         }
-
-        its->second.emplace(in_to_key.k_image, outputs);
       }
     }
   }
@@ -5493,6 +5521,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
       MDEBUG("Prepare scantable took: " << scantable << " ms");
   }
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - end prepare handle incoming blocks");
   return true;
 }
 

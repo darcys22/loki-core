@@ -486,20 +486,21 @@ namespace cryptonote
     //if (height % 5 != 0)
       //return true;
 
-
     tx_verification_batch_info info;
+
+    info.tx.type    = txtype::standard;
+    info.tx.version = transaction::get_max_version_for_hf(version);
+    info.tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
+    info.tx.vin.push_back(txin_gen{height});
 
     for (auto & service_node_reward : rewards) {
       cryptonote::tx_out txout;
       txout.target = txout_to_key(service_node_reward.address.m_view_public_key);
       txout.amount = service_node_reward.amount;
       info.tx.vout.push_back(txout);
+      info.tx.output_unlock_times.push_back(info.tx.unlock_time);
     }
 
-    info.tx.type    = txtype::standard;
-    info.tx.version = transaction::get_max_version_for_hf(version);
-    info.tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
-    info.tx.vin.push_back(txin_gen{height});
     info.tx.invalidate_hashes();
     info.tx_hash = get_transaction_hash(info.tx);
     bl.tx_hashes.push_back(info.tx_hash);
