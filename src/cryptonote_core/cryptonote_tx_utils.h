@@ -126,10 +126,9 @@ namespace cryptonote
       uint64_t fee,
       transaction& tx,
       const oxen_miner_tx_context &miner_context,
+      const std::optional<std::vector<cryptonote::reward_payout>> sn_rwds,
       const blobdata& extra_nonce = blobdata(),
       uint8_t hard_fork_version = 1);
-
-  std::optional<cryptonote::tx_verification_batch_info> fill_block_rewards(block &bl, std::vector<reward_payout> rewards, uint64_t &expected_reward, uint8_t version, uint64_t height);
 
   struct block_reward_parts
   {

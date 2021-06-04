@@ -2097,7 +2097,7 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   bool core::handle_block_found(block& b, block_verification_context &bvc)
   {
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found - block: " << cryptonote::obj_to_json_str(b));
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found");
     bvc = {};
     std::vector<block_complete_entry> blocks;
     m_miner.pause();
@@ -2150,6 +2150,7 @@ namespace cryptonote
       MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found about to relay block");
       m_pprotocol->relay_block(arg, exclude_context);
       MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found after relay block");
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - BBBBB - Relayed block: " << cryptonote::obj_to_json_str(b));
     }
     return true;
   }
