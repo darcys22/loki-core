@@ -1383,11 +1383,14 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   block_reward_parts reward_parts;
 
-  if (!get_oxen_block_reward(median_weight, cumulative_block_weight, already_generated_coins, version, reward_parts, block_reward_context))
+  //TODO sean this needs to exist after 19 too, but check that reward amounts are correct
+  if (b.major_version < cryptonote::network_version_19)
   {
-    MERROR_VER("block weight " << cumulative_block_weight << " is bigger than allowed for this blockchain");
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this ERROR- ABCDEF - handle block to main chain start bvc: ");
-    return false;
+    if (!get_oxen_block_reward(median_weight, cumulative_block_weight, already_generated_coins, version, reward_parts, block_reward_context))
+    {
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this ERROR- ABCDEF - handle block to main chain start bvc: ");
+      return false;
+    }
   }
 
   for (ValidateMinerTxHook* hook : m_validate_miner_tx_hooks)
@@ -1427,19 +1430,23 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   // +1 here to allow a 1 atomic unit error in the calculation (which can happen because of floating point errors or rounding)
   // TODO(oxen): eliminate all floating point math in reward calculations.
-  uint64_t max_base_reward = reward_parts.base_miner + reward_parts.governance_paid + reward_parts.service_node_total + 1;
-  uint64_t max_money_in_use = max_base_reward + reward_parts.miner_fee;
-  if (money_in_use > max_money_in_use)
+  // TODO sean not sure what this does probably need to revisit
+  if (b.major_version < cryptonote::network_version_19)
   {
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - ABCDEF - handle block to main chain start bvc: ");
-    MERROR_VER("coinbase transaction spends too much money (" << print_money(money_in_use) << "). Maximum block reward is "
-            << print_money(max_money_in_use) << " (= " << print_money(max_base_reward) << " base + " << print_money(reward_parts.miner_fee) << " fees)");
-    return false;
-  }
+    uint64_t max_base_reward = reward_parts.base_miner + reward_parts.governance_paid + reward_parts.service_node_total + 1;
+    uint64_t max_money_in_use = max_base_reward + reward_parts.miner_fee;
+    if (money_in_use > max_money_in_use)
+    {
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - ABCDEF - handle block to main chain start bvc: ");
+      MERROR_VER("coinbase transaction spends too much money (" << print_money(money_in_use) << "). Maximum block reward is "
+              << print_money(max_money_in_use) << " (= " << print_money(max_base_reward) << " base + " << print_money(reward_parts.miner_fee) << " fees)");
+      return false;
+    }
 
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - ABCDEF - handle block to main chain start bvc: ");
-  CHECK_AND_ASSERT_MES(money_in_use >= reward_parts.miner_fee, false, "base reward calculation bug");
-  base_reward = money_in_use - reward_parts.miner_fee;
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - ABCDEF - handle block to main chain start bvc: ");
+    CHECK_AND_ASSERT_MES(money_in_use >= reward_parts.miner_fee, false, "base reward calculation bug");
+    base_reward = money_in_use - reward_parts.miner_fee;
+  }
 
   return true;
 }

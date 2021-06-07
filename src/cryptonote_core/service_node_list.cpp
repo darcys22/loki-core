@@ -2449,11 +2449,12 @@ namespace service_nodes
 
     //TODO sean - check that a batch should be paid out - give warning maybe?
     if (block.major_version >= cryptonote::network_version_19)
-    {
-      mode = verify_mode::batched_no_outputs;
-      MGINFO("Batched miner reward");
-      // make a verify_mode for this.
-    } else if (mode == verify_mode::pulse_block_leader_is_producer || mode == verify_mode::pulse_different_block_producer)
+      return true;
+
+    //mode = verify_mode::batched_no_outputs;
+    //MGINFO("Batched miner reward");
+    // make a verify_mode for this.
+    if (mode == verify_mode::pulse_block_leader_is_producer || mode == verify_mode::pulse_different_block_producer)
     {
       auto info_it = m_state.service_nodes_infos.find(block_producer_key);
       if (info_it == m_state.service_nodes_infos.end())
