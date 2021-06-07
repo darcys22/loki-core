@@ -2088,16 +2088,13 @@ namespace cryptonote
     {
       cryptonote::blobdata txblob;
       CHECK_AND_ASSERT_THROW_MES(pool.get_transaction(tx_hash, txblob), "Transaction not found in pool");
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - txns blob: " << txblob);
       bce.txs.push_back(txblob);
     }
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - getting blocks transactions size of txns: " << bce.txs.size());
     return bce;
   }
   //-----------------------------------------------------------------------------------------------
   bool core::handle_block_found(block& b, block_verification_context &bvc)
   {
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found");
     bvc = {};
     std::vector<block_complete_entry> blocks;
     m_miner.pause();
@@ -2147,10 +2144,7 @@ namespace cryptonote
       arg.current_blockchain_height                 = m_blockchain_storage.get_current_blockchain_height();
       arg.b                                         = blocks[0];
 
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found about to relay block");
       m_pprotocol->relay_block(arg, exclude_context);
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - handle block found after relay block");
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - BBBBB - Relayed block: " << cryptonote::obj_to_json_str(b));
     }
     return true;
   }

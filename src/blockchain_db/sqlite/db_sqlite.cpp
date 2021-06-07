@@ -121,7 +121,6 @@ bool BlockchainSQLite::subtract_sn_payments(cryptonote::network_type nettype, st
 std::optional<std::vector<cryptonote::reward_payout>> BlockchainSQLite::get_sn_payments()
 {
 
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP get_sn_payments start ");
   using namespace sqlite_orm;
 
   //SELECT
@@ -135,21 +134,19 @@ std::optional<std::vector<cryptonote::reward_payout>> BlockchainSQLite::get_sn_p
 
   std::vector<cryptonote::reward_payout> payments;
 
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP payments size: " << payments.size());
   for(auto &payment : result) {
     std::cout << std::get<0>(payment) << '\t' << std::get<1>(payment) << std::endl;
     cryptonote::address_parse_info info;
     if (cryptonote::get_account_address_from_str(info, cryptonote::network_type::DEVNET, std::get<0>(payment)))
     {
-      //cryptonote::reward_payout pmt = {cryptonote::reward_type::snode, info.address, std::get<1>(payment)};
-      cryptonote::reward_payout pmt = {cryptonote::reward_type::snode, info.address, 500};
+      cryptonote::reward_payout pmt = {cryptonote::reward_type::snode, info.address, std::get<1>(payment)};
+
       payments.push_back(pmt);
     }
     else
       return std::nullopt;
   }
 
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - QWERTYUIOP get_sn_payments end");
   return payments;
 }
 
