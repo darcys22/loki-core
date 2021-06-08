@@ -148,7 +148,7 @@ file(GLOB cpr_sources ${conf_depends} cpr/cpr/*.cpp)
 add_library(sqlite_orm INTERFACE)
 target_include_directories(sqlite_orm INTERFACE sqlite_orm/include)
 
-add_subdirectory(sqlite_orm)
+#add_subdirectory(sqlite_orm)
 
 add_library(cpr STATIC EXCLUDE_FROM_ALL ${cpr_sources})
 target_link_libraries(cpr PUBLIC CURL::libcurl)

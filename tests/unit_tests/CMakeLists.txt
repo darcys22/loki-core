@@ -104,7 +104,7 @@ target_link_libraries(unit_tests
     wallet
     p2p
     version
-    sqlite_orm::sqlite_orm
+    sqlite_orm
     Boost::thread
     miniupnpc
     gtest

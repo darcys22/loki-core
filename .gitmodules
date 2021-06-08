@@ -28,6 +28,6 @@
 [submodule "external/ghc-filesystem"]
 	path = external/ghc-filesystem
 	url = https://github.com/gulrak/filesystem.git
-[submodule "external/external/sqlite_orm"]
-	path = external/external/sqlite_orm
+[submodule "external/sqlite_orm"]
+	path = external/sqlite_orm
 	url = https://github.com/fnc12/sqlite_orm.git

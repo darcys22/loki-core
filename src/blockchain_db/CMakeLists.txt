@@ -34,13 +34,14 @@ add_library(blockchain_db
   )
 
 target_link_libraries(blockchain_db
+  PUBLIC
+    sqlite_orm
   PRIVATE
     common
     ringct
     lmdb
     filesystem
     Boost::thread
-    sqlite_orm::sqlite_orm
     extra)
 
 target_compile_definitions(blockchain_db PRIVATE
