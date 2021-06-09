@@ -1143,7 +1143,7 @@ inline bool do_replay_file(const std::string& filename)
                           TX,                                                                                          \
                           cryptonote::oxen_miner_tx_context::miner_block(cryptonote::FAKECHAIN, miner_account.get_keys().m_account_address), \
                           {},                                                                                          \
-                          7))                                                                                          \
+                          ))                                                                                          \
     return false;
 
 #define MAKE_TX_LIST_START_RCT(VEC_EVENTS, SET_NAME, FROM, TO, AMOUNT, NMIX, HEAD) \
