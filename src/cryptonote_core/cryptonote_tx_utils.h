@@ -127,6 +127,7 @@ namespace cryptonote
       transaction& tx,
       const oxen_miner_tx_context &miner_context,
       const std::optional<std::vector<cryptonote::reward_payout>> sn_rwds,
+      uint64_t& block_rewards,
       const blobdata& extra_nonce = blobdata(),
       uint8_t hard_fork_version = 1);
 

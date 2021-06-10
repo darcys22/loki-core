@@ -456,7 +456,7 @@ namespace cryptonote
       {
         VARINT_FIELD(height)
         FIELD(service_node_winner_key)
-        FIELD(reward) 
+        VARINT_FIELD(reward) 
       }
     END_SERIALIZE()
   };

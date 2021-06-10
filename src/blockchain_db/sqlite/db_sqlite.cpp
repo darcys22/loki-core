@@ -71,9 +71,12 @@ bool BlockchainSQLite::add_sn_payments(cryptonote::network_type nettype, std::ve
 
   using namespace sqlite_orm;
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - iterating payments");
   for (auto& payment: payments) {
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean BBBBBB remove this - iterating a payment");
     if (cryptonote::is_valid_address(std::get<0>(payment), nettype))
     {
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - address is valid");
       auto prev_entry = m_storage->get_pointer<cryptonote::batch_sn_payments>(std::get<0>(payment));
       if( auto prev_entry = m_storage->get_pointer<cryptonote::batch_sn_payments>(std::get<0>(payment))){
           MINFO("Record found for SN reward contributor, adding to database");
@@ -89,6 +92,7 @@ bool BlockchainSQLite::add_sn_payments(cryptonote::network_type nettype, std::ve
 
 
     } else {
+      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - address is not");
       return false;
     }
   };
@@ -159,9 +163,12 @@ std::vector<std::tuple<std::string, uint64_t>> BlockchainSQLite::calculate_rewar
   {
     total_contributed_to_winner_sn += std::get<1>(contributor);
   }
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - total contributed to winner sn: " << total_contributed_to_winner_sn);
+  
   for (auto & contributor : contributors)
   {
     payments.emplace_back(std::get<0>(contributor),std::get<1>(contributor)/total_contributed_to_winner_sn*distribution_amount);
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - individual contributer amount: " << std::get<1>(contributor)/total_contributed_to_winner_sn*distribution_amount);
   }
   return payments;
 }
@@ -184,6 +191,7 @@ bool BlockchainSQLite::add_block(cryptonote::network_type nettype, const crypton
     }
   }
 
+  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - calculating rewards: ");
   std::vector<std::tuple<std::string, uint64_t>> payments = calculate_rewards(block, contributors);
 
   return add_sn_payments(nettype, payments);

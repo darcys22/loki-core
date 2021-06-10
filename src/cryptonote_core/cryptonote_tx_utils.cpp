@@ -252,6 +252,7 @@ namespace cryptonote
       transaction& tx,
       const oxen_miner_tx_context &miner_tx_context,
       const std::optional<std::vector<cryptonote::reward_payout>> sn_rwds,
+      uint64_t& block_rewards,
       const blobdata& extra_nonce,
       uint8_t hard_fork_version)
   {
@@ -487,6 +488,7 @@ namespace cryptonote
         [[maybe_unused]] auto const &[type, address, amount] = reward;
         if (type == reward_type::snode) expected_amount += amount;
       }
+      block_rewards = expected_amount;
     }
     else
     {
