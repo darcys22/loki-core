@@ -861,25 +861,22 @@ namespace cryptonote
     // ND: Speedup
     for(const txin_v& vi: tx.vin)
     {
-      if (!std::holds_alternative<txin_gen>(vi))
-      {
-        CHECKED_GET_SPECIFIC_VARIANT(vi, txin_to_key, txin, false);
-        auto it = m_spent_key_images.find(txin.k_image);
-        CHECK_AND_ASSERT_MES(it != m_spent_key_images.end(), false, "failed to find transaction input in key images. img=" << txin.k_image
-                                      << "\ntransaction id = " << actual_hash);
-        std::unordered_set<crypto::hash>& key_image_set =  it->second;
-        CHECK_AND_ASSERT_MES(key_image_set.size(), false, "empty key_image set, img=" << txin.k_image
-          << "\ntransaction id = " << actual_hash);
+      CHECKED_GET_SPECIFIC_VARIANT(vi, txin_to_key, txin, false);
+      auto it = m_spent_key_images.find(txin.k_image);
+      CHECK_AND_ASSERT_MES(it != m_spent_key_images.end(), false, "failed to find transaction input in key images. img=" << txin.k_image
+                                    << "\ntransaction id = " << actual_hash);
+      std::unordered_set<crypto::hash>& key_image_set =  it->second;
+      CHECK_AND_ASSERT_MES(key_image_set.size(), false, "empty key_image set, img=" << txin.k_image
+        << "\ntransaction id = " << actual_hash);
 
-        auto it_in_set = key_image_set.find(actual_hash);
-        CHECK_AND_ASSERT_MES(it_in_set != key_image_set.end(), false, "transaction id not found in key_image set, img=" << txin.k_image
-          << "\ntransaction id = " << actual_hash);
-        key_image_set.erase(it_in_set);
-        if(!key_image_set.size())
-        {
-          //it is now empty hash container for this key_image
-          m_spent_key_images.erase(it);
-        }
+      auto it_in_set = key_image_set.find(actual_hash);
+      CHECK_AND_ASSERT_MES(it_in_set != key_image_set.end(), false, "transaction id not found in key_image set, img=" << txin.k_image
+        << "\ntransaction id = " << actual_hash);
+      key_image_set.erase(it_in_set);
+      if(!key_image_set.size())
+      {
+        //it is now empty hash container for this key_image
+        m_spent_key_images.erase(it);
       }
 
     }
@@ -1504,18 +1501,14 @@ namespace cryptonote
     bool ret = false;
     for(const auto& in: tx.vin)
     {
-      //TODO sean this now can have txin_gen in the transactions do a version check here
-      if(std::holds_alternative<txin_to_key>(in))
+      CHECKED_GET_SPECIFIC_VARIANT(in, txin_to_key, tokey_in, true);//should never fail
+      auto it = m_spent_key_images.find(tokey_in.k_image);
+      if (it != m_spent_key_images.end())
       {
-        CHECKED_GET_SPECIFIC_VARIANT(in, txin_to_key, tokey_in, true);//should never fail
-        auto it = m_spent_key_images.find(tokey_in.k_image);
-        if (it != m_spent_key_images.end())
-        {
-          if (!conflicting)
-            return true;
-          ret = true;
-          conflicting->insert(conflicting->end(), it->second.begin(), it->second.end());
-        }
+        if (!conflicting)
+          return true;
+        ret = true;
+        conflicting->insert(conflicting->end(), it->second.begin(), it->second.end());
       }
     }
     return ret;

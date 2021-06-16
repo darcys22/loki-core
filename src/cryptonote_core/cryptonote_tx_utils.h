@@ -118,7 +118,7 @@ namespace cryptonote
     bool operator==(service_nodes::payout_entry const &other) const { return address == other.address; }
   };
 
-  bool construct_miner_tx(
+  std::pair<bool, uint64_t> construct_miner_tx(
       size_t height,
       size_t median_weight,
       uint64_t already_generated_coins,
@@ -127,7 +127,6 @@ namespace cryptonote
       transaction& tx,
       const oxen_miner_tx_context &miner_context,
       const std::optional<std::vector<cryptonote::reward_payout>> sn_rwds,
-      uint64_t& block_rewards,
       const blobdata& extra_nonce = blobdata(),
       uint8_t hard_fork_version = 1);
 

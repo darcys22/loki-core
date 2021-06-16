@@ -243,7 +243,7 @@ namespace cryptonote
     return reward;
   }
 
-  bool construct_miner_tx(
+  std::pair<bool, uint64_t> construct_miner_tx(
       size_t height,
       size_t median_weight,
       uint64_t already_generated_coins,
@@ -252,7 +252,6 @@ namespace cryptonote
       transaction& tx,
       const oxen_miner_tx_context &miner_tx_context,
       const std::optional<std::vector<cryptonote::reward_payout>> sn_rwds,
-      uint64_t& block_rewards,
       const blobdata& extra_nonce,
       uint8_t hard_fork_version)
   {
@@ -266,12 +265,14 @@ namespace cryptonote
     keypair const txkey{hw::get_device("default")};
     keypair const gov_key = get_deterministic_keypair_from_height(height); // NOTE: Always need since we use same key for service node
 
+    uint64_t block_rewards = 0;
+
     // NOTE: TX Extra
     add_tx_extra<tx_extra_pub_key>(tx, txkey.pub);
     if(!extra_nonce.empty())
     {
       if(!add_extra_nonce_to_tx_extra(tx.extra, extra_nonce))
-        return false;
+        return std::make_pair(false, block_rewards);
     }
 
     // TODO(doyle): We don't need to do this. It's a deterministic key.
@@ -292,7 +293,7 @@ namespace cryptonote
     if(!get_oxen_block_reward(median_weight, current_block_weight, already_generated_coins, hard_fork_version, reward_parts, block_reward_context))
     {
       LOG_PRINT_L0("Failed to calculate block reward");
-      return false;
+      return std::make_pair(false, block_rewards);
     }
 
     // TODO(doyle): Batching awards
@@ -339,7 +340,7 @@ namespace cryptonote
     std::vector<reward_payout>   rewards = {};
 
     if (hard_fork_version >= cryptonote::network_version_9_service_nodes)
-      CHECK_AND_ASSERT_MES(miner_tx_context.block_leader.payouts.size(), false, "Constructing a block leader reward for block but no payout entries specified");
+      CHECK_AND_ASSERT_MES(miner_tx_context.block_leader.payouts.size(), std::make_pair(false, block_rewards), "Constructing a block leader reward for block but no payout entries specified");
 
     // NOTE: Add Block Producer Reward
     service_nodes::payout const &leader = miner_tx_context.block_leader;
@@ -347,9 +348,9 @@ namespace cryptonote
     {
       // PULSE BLOCKS 
       
-      CHECK_AND_ASSERT_MES(miner_tx_context.pulse_block_producer.payouts.size(), false, "Constructing a reward for block produced by pulse but no payout entries specified");
-      CHECK_AND_ASSERT_MES(miner_tx_context.pulse_block_producer.key, false, "Null Key given for Pulse Block Producer");
-      CHECK_AND_ASSERT_MES(hard_fork_version >= cryptonote::network_version_16_pulse, false, "Pulse Block Producer is not valid until HF16, current HF" << hard_fork_version);
+      CHECK_AND_ASSERT_MES(miner_tx_context.pulse_block_producer.payouts.size(), std::make_pair(false, block_rewards), "Constructing a reward for block produced by pulse but no payout entries specified");
+      CHECK_AND_ASSERT_MES(miner_tx_context.pulse_block_producer.key, std::make_pair(false, block_rewards), "Null Key given for Pulse Block Producer");
+      CHECK_AND_ASSERT_MES(hard_fork_version >= cryptonote::network_version_16_pulse, std::make_pair(false, block_rewards), "Pulse Block Producer is not valid until HF16, current HF" << hard_fork_version);
 
       uint64_t leader_reward = reward_parts.service_node_total;
       if (miner_tx_context.block_leader.key == miner_tx_context.pulse_block_producer.key)
@@ -385,7 +386,7 @@ namespace cryptonote
     {
       // MINED BLOCKS 
       
-      CHECK_AND_ASSERT_MES(miner_tx_context.pulse_block_producer.payouts.empty(), false, "Constructing a reward for block produced by miner but payout entries specified");
+      CHECK_AND_ASSERT_MES(miner_tx_context.pulse_block_producer.payouts.empty(), std::make_pair(false, block_rewards), "Constructing a reward for block produced by miner but payout entries specified");
 
       if (uint64_t miner_amount = reward_parts.base_miner + reward_parts.miner_fee; miner_amount)
       {
@@ -426,7 +427,7 @@ namespace cryptonote
     {
       if (reward_parts.governance_paid == 0)
       {
-        CHECK_AND_ASSERT_MES(hard_fork_version >= network_version_10_bulletproofs, false, "Governance reward can NOT be 0 before hardfork 10, hard_fork_version: " << hard_fork_version);
+        CHECK_AND_ASSERT_MES(hard_fork_version >= network_version_10_bulletproofs, std::make_pair(false, block_rewards), "Governance reward can NOT be 0 before hardfork 10, hard_fork_version: " << hard_fork_version);
       }
       else
       {
@@ -440,8 +441,8 @@ namespace cryptonote
 
     if (hard_fork_version < cryptonote::network_version_19)
     {
-      CHECK_AND_ASSERT_MES(rewards.size() <= 9, false, "More rewards specified than supported, number of rewards: " << rewards.size()  << ", capacity: " << rewards.size());
-      CHECK_AND_ASSERT_MES(rewards.size() > 0, false, "Zero rewards are to be payed out, there should be at least 1");
+      CHECK_AND_ASSERT_MES(rewards.size() <= 9, std::make_pair(false, block_rewards), "More rewards specified than supported, number of rewards: " << rewards.size()  << ", capacity: " << rewards.size());
+      CHECK_AND_ASSERT_MES(rewards.size() > 0, std::make_pair(false, block_rewards), "Zero rewards are to be payed out, there should be at least 1");
     }
 
     // NOTE: Make TX Outputs
@@ -460,7 +461,7 @@ namespace cryptonote
       if (!get_deterministic_output_key(address, derivation_pair, it - rewards.begin(), out_eph_public_key))
       {
         MERROR("Failed to generate output one-time public key");
-        return false;
+        return std::make_pair(false, block_rewards);
       }
 
       txout_to_key tk = {};
@@ -500,8 +501,8 @@ namespace cryptonote
         expected_amount = summary_amounts;
     }
 
-    CHECK_AND_ASSERT_MES(summary_amounts == expected_amount, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal total block_reward = " << expected_amount);
-    CHECK_AND_ASSERT_MES(tx.vout.size() == rewards.size(), false, "TX output mis-match with rewards expected: " << rewards.size() << ", tx outputs: " << tx.vout.size());
+    CHECK_AND_ASSERT_MES(summary_amounts == expected_amount, std::make_pair(false, block_rewards), "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal total block_reward = " << expected_amount);
+    CHECK_AND_ASSERT_MES(tx.vout.size() == rewards.size(), std::make_pair(false, block_rewards), "TX output mis-match with rewards expected: " << rewards.size() << ", tx outputs: " << tx.vout.size());
 
     //lock
     tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
@@ -510,7 +511,7 @@ namespace cryptonote
 
     //LOG_PRINT("MINER_TX generated ok, block_reward=" << print_money(block_reward) << "("  << print_money(block_reward - fee) << "+" << print_money(fee)
     //  << "), current_block_size=" << current_block_size << ", already_generated_coins=" << already_generated_coins << ", tx_id=" << get_transaction_hash(tx), LOG_LEVEL_2);
-    return true;
+    return std::make_pair(true, block_rewards);
   }
 
   bool get_oxen_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, int hard_fork_version, block_reward_parts &result, const oxen_block_reward_context &oxen_context)

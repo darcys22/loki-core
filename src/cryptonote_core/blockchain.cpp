@@ -1670,13 +1670,14 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
 
   uint64_t block_rewards = 0;
 
-  bool r = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, b.miner_tx, miner_tx_context, sn_rwds, block_rewards, ex_nonce, hf_version);
+  bool r;
+  std::tie(r, block_rewards) = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, b.miner_tx, miner_tx_context, sn_rwds, ex_nonce, hf_version);
 
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_weight = txs_weight + get_transaction_weight(b.miner_tx);
   for (size_t try_count = 0; try_count != 10; ++try_count)
   {
-    r = construct_miner_tx(height, median_weight, already_generated_coins, cumulative_weight, fee, b.miner_tx, miner_tx_context, sn_rwds, block_rewards, ex_nonce, hf_version);
+    std::tie(r, block_rewards) = construct_miner_tx(height, median_weight, already_generated_coins, cumulative_weight, fee, b.miner_tx, miner_tx_context, sn_rwds, ex_nonce, hf_version);
 
     CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, second chance");
     size_t coinbase_weight = get_transaction_weight(b.miner_tx);
