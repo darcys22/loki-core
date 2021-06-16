@@ -65,8 +65,8 @@ void BlockchainSQLite::load_database(std::optional<fs::path> file)
 
 }
 
-// tuple (Address, amount)
-bool BlockchainSQLite::add_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments)
+// tuple (Address, amount, height)
+bool BlockchainSQLite::add_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments, uint64_t height)
 {
 
   using namespace sqlite_orm;
@@ -86,55 +86,57 @@ bool BlockchainSQLite::add_sn_payments(cryptonote::network_type nettype, std::ve
               where(c(&cryptonote::batch_sn_payments::address) = prev_entry->address));
       } else {
           MINFO("No record found for SN reward contributor, adding to database");
-          m_storage->replace(cryptonote::batch_sn_payments{std::get<0>(payment), std::get<1>(payment)});
+          m_storage->replace(cryptonote::batch_sn_payments{std::get<0>(payment), std::get<1>(payment), height});
       }
 
 
 
     } else {
-      MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - address is not");
-      return false;
-    }
-  };
-  return true;
+    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - address is not");
+    return false;
+  }
+};
+return true;
 }
 
 // tuple (Address, amount)
-bool BlockchainSQLite::subtract_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments)
+bool BlockchainSQLite::subtract_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments, uint64_t height)
 {
 
-  using namespace sqlite_orm;
-  
-  for (auto& payment: payments) {
-    if (cryptonote::is_valid_address(std::get<0>(payment), nettype))
-    {
-      auto prev_entry = m_storage->get<cryptonote::batch_sn_payments>(std::get<0>(payment));
-      if ((int(prev_entry.amount) - std::get<1>(payment)) < 0)
-        return false;
-      m_storage->update_all(
-          set(
-            c(&cryptonote::batch_sn_payments::amount) = (prev_entry.amount - std::get<1>(payment))),
-          where(c(&cryptonote::batch_sn_payments::address) = prev_entry.address));
-    } else {
+using namespace sqlite_orm;
+
+for (auto& payment: payments) {
+  if (cryptonote::is_valid_address(std::get<0>(payment), nettype))
+  {
+    auto prev_entry = m_storage->get<cryptonote::batch_sn_payments>(std::get<0>(payment));
+    if ((int(prev_entry.amount) - std::get<1>(payment)) < 0)
       return false;
-    }
-  };
-  return true;
+    m_storage->update_all(
+        set(
+          c(&cryptonote::batch_sn_payments::amount) = (prev_entry.amount - std::get<1>(payment))),
+        where(c(&cryptonote::batch_sn_payments::address) = prev_entry.address));
+  } else {
+    return false;
+  }
+};
+return true;
 }
 
-std::optional<std::vector<cryptonote::reward_payout>> BlockchainSQLite::get_sn_payments()
+std::optional<std::vector<cryptonote::reward_payout>> BlockchainSQLite::get_sn_payments(uint64_t height)
 {
 
-  using namespace sqlite_orm;
+using namespace sqlite_orm;
 
-  //SELECT
-    //address,
-    //amount
-  auto result = m_storage->select(
-      columns(
-        &cryptonote::batch_sn_payments::address,
-        &cryptonote::batch_sn_payments::amount)
-      );
+//SELECT
+  //address,
+  //amount
+auto result = m_storage->select(
+    columns(
+      &cryptonote::batch_sn_payments::address,
+      &cryptonote::batch_sn_payments::amount)
+    ,
+    //TODO sean this should be from constant and check last paid time PAYOUT 
+    where(c(&cryptonote::batch_sn_payments::height) < height - 5));
 
   std::vector<cryptonote::reward_payout> payments;
 
@@ -194,7 +196,7 @@ bool BlockchainSQLite::add_block(cryptonote::network_type nettype, const crypton
   MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - calculating rewards: ");
   std::vector<std::tuple<std::string, uint64_t>> payments = calculate_rewards(block, contributors);
 
-  return add_sn_payments(nettype, payments);
+  return add_sn_payments(nettype, payments, block.height);
 }
 
 
@@ -206,7 +208,7 @@ bool BlockchainSQLite::pop_block(cryptonote::network_type nettype, const crypton
 
   std::vector<std::tuple<std::string, uint64_t>> payments = calculate_rewards(block, contributors);
 
-  return subtract_sn_payments(nettype, payments);
+  return subtract_sn_payments(nettype, payments, block.height);
 }
 
 bool BlockchainSQLite::validate_batch_sn_reward_tx(uint8_t hf_version, uint64_t blockchain_height, cryptonote::transaction const &tx, std::string *reason)

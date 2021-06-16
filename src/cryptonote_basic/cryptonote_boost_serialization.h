@@ -218,8 +218,8 @@ namespace boost
     if (ver < 19)
       return;
     a & b.height;
-    a & b.reward;
     a & b.service_node_winner_key;
+    a & b.reward;
   }
 
   template <class Archive>

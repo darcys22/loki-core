@@ -51,11 +51,11 @@ public:
   void load_database(std::optional<fs::path> file);
 
   //add/subtract_sn_payments -> passing an array of addressesd and amount. These will be added or subtracted to the database for each address specified. If the address does not exist it will be created.
-  bool add_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments);
-  bool subtract_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments);
+  bool add_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments, uint64_t height);
+  bool subtract_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments, uint64_t height);
 
   //get_payments -> passing a block range will return an array of payments that should be created in a transaction on that date. Possibly allow for the returned figure to include all payments between that range. Or also an optional parameter if it is “unpaid” which should be the same in most normal cases
-  std::optional<std::vector<cryptonote::reward_payout>> get_sn_payments();
+  std::optional<std::vector<cryptonote::reward_payout>> get_sn_payments(uint64_t height);
 
   std::vector<std::tuple<std::string, uint64_t>> calculate_rewards(const cryptonote::block &block, std::vector<std::tuple<std::string, uint64_t>> contributors);
 

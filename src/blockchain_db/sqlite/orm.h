@@ -42,7 +42,8 @@ namespace cryptonote
         make_table(
             "batch_sn_payments",
             make_column("address", &batch_sn_payments::address, sqlite_orm::primary_key()),
-            make_column("amount", &batch_sn_payments::amount)));
+            make_column("amount", &batch_sn_payments::amount),
+            make_column("height", &batch_sn_payments::height)));
   }
 
   using sqliteDBStorage = decltype(initStorage(""));

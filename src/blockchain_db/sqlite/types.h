@@ -35,6 +35,7 @@ namespace cryptonote
 struct batch_sn_payments {
     std::string address;
     uint64_t amount;
+    uint64_t height;
 };
 
 } // cryptonote

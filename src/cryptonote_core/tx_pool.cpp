@@ -260,8 +260,7 @@ namespace cryptonote
       return false;
     }
 
-    bool has_txin_gen = false;
-    if(!check_inputs_types_supported(tx, has_txin_gen))
+    if(!check_inputs_types_supported(tx))
     {
       tvc.m_verifivation_failed = true;
       tvc.m_invalid_input = true;
@@ -283,7 +282,7 @@ namespace cryptonote
     }
 
 
-    if(hf_version < cryptonote::network_version_19 || !has_txin_gen)
+    if(hf_version < cryptonote::network_version_19)
     {
       if (!opts.kept_by_block && tx.is_transfer() && !m_blockchain.check_fee(tx_weight, tx.vout.size(), fee, burned, opts))
       {
@@ -840,17 +839,13 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      //TODO sean make this 19 or greater
-      if(!std::holds_alternative<txin_gen>(in))
-      {
-        CHECKED_GET_SPECIFIC_VARIANT(in, txin_to_key, txin, false);
-        std::unordered_set<crypto::hash>& kei_image_set = m_spent_key_images[txin.k_image];
-        CHECK_AND_ASSERT_MES(kept_by_block || kei_image_set.size() == 0, false, "internal error: kept_by_block=" << kept_by_block
-                                            << ",  kei_image_set.size()=" << kei_image_set.size() << "\ntxin.k_image=" << txin.k_image
-                                            << "\ntx_id=" << id );
-        auto ins_res = kei_image_set.insert(id);
-        CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in key_image set");
-      }
+      CHECKED_GET_SPECIFIC_VARIANT(in, txin_to_key, txin, false);
+      std::unordered_set<crypto::hash>& kei_image_set = m_spent_key_images[txin.k_image];
+      CHECK_AND_ASSERT_MES(kept_by_block || kei_image_set.size() == 0, false, "internal error: kept_by_block=" << kept_by_block
+                                          << ",  kei_image_set.size()=" << kei_image_set.size() << "\ntxin.k_image=" << txin.k_image
+                                          << "\ntx_id=" << id );
+      auto ins_res = kei_image_set.insert(id);
+      CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in key_image set");
     }
     ++m_cookie;
     return true;

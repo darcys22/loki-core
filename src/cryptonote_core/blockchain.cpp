@@ -1665,9 +1665,7 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
   std::optional<std::vector<cryptonote::reward_payout>> sn_rwds = std::nullopt;
   if (hf_version >= cryptonote::network_version_19)
   {
-    //TODO sean this should be from constant and check last paid time PAYOUT 
-    if (height % 5 == 0)
-      sn_rwds = m_sqlite_db->get_sn_payments(); //Rewards to pay out
+    sn_rwds = m_sqlite_db->get_sn_payments(height); //Rewards to pay out
   }
 
   uint64_t block_rewards = 0;

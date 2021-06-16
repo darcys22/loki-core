@@ -904,25 +904,13 @@ namespace cryptonote
     }
   }
   //---------------------------------------------------------------
-  bool check_inputs_types_supported(const transaction& tx, bool& has_txin_gen)
+  bool check_inputs_types_supported(const transaction& tx)
   {
     for(const auto& in: tx.vin)
     {
-      //if (tx.version < cryptonote::network_version_19)
-      if (false)
-      {
-        CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(in), false, "wrong variant type: "
-          << tools::type_name(tools::variant_type(in)) << ", expected " << tools::type_name<txin_to_key>()
-          << ", in transaction id=" << get_transaction_hash(tx));
-      } else {
-        //TODO sean need to check that only one transaction has input that is txin
-        has_txin_gen = std::holds_alternative<txin_gen>(in);
-
-        CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(in) || std::holds_alternative<txin_gen>(in), false, "wrong variant type: "
-          << tools::type_name(tools::variant_type(in)) << ", expected " << tools::type_name<txin_to_key>()
-          << ", in transaction id=" << get_transaction_hash(tx));
-      }
-
+      CHECK_AND_ASSERT_MES(std::holds_alternative<txin_to_key>(in), false, "wrong variant type: "
+        << tools::type_name(tools::variant_type(in)) << ", expected " << tools::type_name<txin_to_key>()
+        << ", in transaction id=" << get_transaction_hash(tx));
     }
     return true;
   }
