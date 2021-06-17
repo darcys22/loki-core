@@ -1720,7 +1720,6 @@ bool Blockchain::create_block_template_internal(block& b, const crypto::hash *fr
       b.service_node_winner_key = miner_tx_context.block_leader.key;
     }
 
-    MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - XXXXXX - Adding SN rewards block rewards: " << block_rewards);
     b.reward = block_rewards;
     b.height = height;
     return true;

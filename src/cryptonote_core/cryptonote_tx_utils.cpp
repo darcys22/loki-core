@@ -336,8 +336,8 @@ namespace cryptonote
     // (multiple non-participation marks over the monitoring period will induce
     // a decommission) by members of the quorum.
 
-    //size_t rewards_length                = 0;
     std::vector<reward_payout>   rewards = {};
+    std::vector<reward_payout>   batched_rewards = {};
 
     if (hard_fork_version >= cryptonote::network_version_9_service_nodes)
       CHECK_AND_ASSERT_MES(miner_tx_context.block_leader.payouts.size(), std::make_pair(false, block_rewards), "Constructing a block leader reward for block but no payout entries specified");
@@ -364,20 +364,21 @@ namespace cryptonote
         std::vector<uint64_t> split_rewards   = distribute_reward_by_portions(producer.payouts, reward_parts.miner_fee, true /*distribute_remainder*/);
 
         for (size_t i = 0; i < producer.payouts.size(); i++)
-          rewards.push_back({reward_type::snode, producer.payouts[i].address, split_rewards[i]});
-          //rewards_length++;
-          
+          if (hard_fork_version < cryptonote::network_version_19)
+          {
+            rewards.push_back({reward_type::snode, producer.payouts[i].address, split_rewards[i]});
+          } else {
+            batched_rewards.push_back({reward_type::snode, producer.payouts[i].address, split_rewards[i]});
+          }
       }
 
       std::vector<uint64_t> split_rewards = distribute_reward_by_portions(leader.payouts, leader_reward, true /*distribute_remainder*/);
       for (size_t i = 0; i < leader.payouts.size(); i++)
       {
-        if (hard_fork_version < cryptonote::network_version_19)
-        {
+        if (hard_fork_version < cryptonote::network_version_19) {
           rewards.push_back({reward_type::snode, leader.payouts[i].address, split_rewards[i]});
-          //rewards_length++;
         } else {
-          //batched_rewards[batched++] = {reward_type::snode, leader.payouts[i].address, split_rewards[i]};
+          batched_rewards.push_back({reward_type::snode, leader.payouts[i].address, split_rewards[i]});
         }
 
       }
@@ -390,29 +391,24 @@ namespace cryptonote
 
       if (uint64_t miner_amount = reward_parts.base_miner + reward_parts.miner_fee; miner_amount)
       {
-        if (hard_fork_version < cryptonote::network_version_19)
-        {
+        if (hard_fork_version < cryptonote::network_version_19) {
           rewards.push_back({reward_type::miner, miner_tx_context.miner_block_producer, miner_amount});
-          //rewards_length++;
         } else {
-          //batched_rewards[batched++] = {reward_type::miner, miner_tx_context.miner_block_producer, miner_amount};
+          batched_rewards.push_back({reward_type::miner, miner_tx_context.miner_block_producer, miner_amount});
         }
       }
 
-      if (hard_fork_version >= cryptonote::network_version_9_service_nodes)
-      {
+      if (hard_fork_version >= cryptonote::network_version_9_service_nodes) {
         std::vector<uint64_t> split_rewards =
             distribute_reward_by_portions(leader.payouts,
                                           reward_parts.service_node_total,
                                           hard_fork_version >= cryptonote::network_version_16_pulse /*distribute_remainder*/);
         for (size_t i = 0; i < leader.payouts.size(); i++)
         {
-          if (hard_fork_version < cryptonote::network_version_19)
-          {
+          if (hard_fork_version < cryptonote::network_version_19) {
             rewards.push_back({reward_type::snode, leader.payouts[i].address, split_rewards[i]});
-            //rewards_length++;
           } else {
-            //batched_rewards[batched++] = {reward_type::snode, leader.payouts[i].address, split_rewards[i]};
+            batched_rewards.push_back({reward_type::snode, leader.payouts[i].address, split_rewards[i]});
           }
         }
       }
@@ -435,7 +431,6 @@ namespace cryptonote
         cryptonote::address_parse_info governance_wallet_address;
         cryptonote::get_account_address_from_str(governance_wallet_address, nettype, cryptonote::get_config(nettype).governance_wallet_address(hard_fork_version));
         rewards.push_back({reward_type::governance, governance_wallet_address.address, reward_parts.governance_paid});
-        //rewards_length++;
       }
     }
 
@@ -489,7 +484,6 @@ namespace cryptonote
         [[maybe_unused]] auto const &[type, address, amount] = reward;
         if (type == reward_type::snode) expected_amount += amount;
       }
-      block_rewards = expected_amount;
     }
     else
     {
@@ -503,6 +497,8 @@ namespace cryptonote
 
     CHECK_AND_ASSERT_MES(summary_amounts == expected_amount, std::make_pair(false, block_rewards), "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal total block_reward = " << expected_amount);
     CHECK_AND_ASSERT_MES(tx.vout.size() == rewards.size(), std::make_pair(false, block_rewards), "TX output mis-match with rewards expected: " << rewards.size() << ", tx outputs: " << tx.vout.size());
+
+    block_rewards = std::accumulate(batched_rewards.begin(), batched_rewards.end(), uint64_t(0), [](uint64_t const x, reward_payout const y) { return x + y.amount; });
 
     //lock
     tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
