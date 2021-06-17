@@ -183,17 +183,23 @@ bool BlockchainSQLite::add_block(cryptonote::network_type nettype, const crypton
   if (hf_version < cryptonote::network_version_19)
     return true;
 
-  bool contains_coinbase = false;
-  for(auto & tx : txs)
+  std::vector<std::tuple<std::string, uint64_t>> batched_paid_out;
+  for(auto & vout : block.miner_tx.vout)
   {
-    if(is_coinbase(tx))
-    {
-      //TODO sean - reduce the amounts in the database by the coinbase payment
-      contains_coinbase = true;
-    }
+    if(is_governance_payment(vout))
+      continue;
+    batched_paid_out.emplace_back("blah",vout.amount);
   }
 
-  MINFO(__FILE__ << ":" << __LINE__ << " TODO sean remove this - calculating rewards: ");
+  auto calculated_rewards = get_sn_payments(block.height);
+  if (!validate_batch_payment(batched_paid_out, *calculated_rewards)) {
+    return false;
+  } else {
+    if (!subtract_sn_payments(nettype, batched_paid_out, block.height))
+      return false;
+  }
+
+
   std::vector<std::tuple<std::string, uint64_t>> payments = calculate_rewards(block, contributors);
 
   return add_sn_payments(nettype, payments, block.height);
@@ -203,8 +209,22 @@ bool BlockchainSQLite::add_block(cryptonote::network_type nettype, const crypton
 bool BlockchainSQLite::pop_block(cryptonote::network_type nettype, const cryptonote::block &block, const std::vector<cryptonote::transaction> &txs, std::vector<std::tuple<std::string, uint64_t>> contributors)
 {
   auto hf_version = block.major_version;
-  //if (hf_version <= cryptonote::network_version_19)
-    //return true;
+
+  std::vector<std::tuple<std::string, uint64_t>> batched_paid_out;
+  for(auto & vout : block.miner_tx.vout)
+  {
+    if(is_governance_payment(vout))
+      continue;
+    batched_paid_out.emplace_back("blah",vout.amount);
+  }
+
+  auto calculated_rewards = get_sn_payments(block.height);
+  if (!validate_batch_payment(batched_paid_out, *calculated_rewards)) {
+    return false;
+  } else {
+    if (!add_sn_payments(nettype, batched_paid_out, block.height))
+      return false;
+  }
 
   std::vector<std::tuple<std::string, uint64_t>> payments = calculate_rewards(block, contributors);
 
@@ -212,6 +232,16 @@ bool BlockchainSQLite::pop_block(cryptonote::network_type nettype, const crypton
 }
 
 bool BlockchainSQLite::validate_batch_sn_reward_tx(uint8_t hf_version, uint64_t blockchain_height, cryptonote::transaction const &tx, std::string *reason)
+{
+  return true;
+}
+
+bool BlockchainSQLite::validate_batch_payment(std::vector<std::tuple<std::string, uint64_t>> batch_payment, std::vector<cryptonote::reward_payout> calculated_payment)
+{
+  return true;
+}
+
+bool BlockchainSQLite::is_governance_payment(cryptonote::tx_out out)
 {
   return true;
 }

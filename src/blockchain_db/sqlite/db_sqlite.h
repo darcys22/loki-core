@@ -63,6 +63,8 @@ public:
   bool pop_block(cryptonote::network_type nettype, const cryptonote::block &block, const std::vector<cryptonote::transaction> &txs, std::vector<std::tuple<std::string, uint64_t>> contributors);
 
   bool validate_batch_sn_reward_tx(uint8_t hf_version, uint64_t blockchain_height, cryptonote::transaction const &tx, std::string *reason);
+  bool validate_batch_payment(std::vector<std::tuple<std::string, uint64_t>> batch_payment, std::vector<cryptonote::reward_payout> calculated_payment);
+  bool is_governance_payment(cryptonote::tx_out out);
 
   std::unique_ptr<sqliteDBStorage> m_storage;
   std::string filename;
