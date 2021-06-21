@@ -51,16 +51,16 @@ public:
   void load_database(std::optional<fs::path> file);
 
   //add/subtract_sn_payments -> passing an array of addressesd and amount. These will be added or subtracted to the database for each address specified. If the address does not exist it will be created.
-  bool add_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments, uint64_t height);
-  bool subtract_sn_payments(cryptonote::network_type nettype, std::vector<std::tuple<std::string, uint64_t>>& payments, uint64_t height);
+  bool add_sn_payments(cryptonote::network_type nettype, std::vector<cryptonote::reward_payout>& payments, uint64_t height);
+  bool subtract_sn_payments(cryptonote::network_type nettype, std::vector<cryptonote::reward_payout>& payments, uint64_t height);
 
   //get_payments -> passing a block range will return an array of payments that should be created in a transaction on that date. Possibly allow for the returned figure to include all payments between that range. Or also an optional parameter if it is “unpaid” which should be the same in most normal cases
   std::optional<std::vector<cryptonote::reward_payout>> get_sn_payments(uint64_t height);
 
-  std::vector<std::tuple<std::string, uint64_t>> calculate_rewards(const cryptonote::block &block, std::vector<std::tuple<std::string, uint64_t>> contributors);
+  std::vector<cryptonote::reward_payout> calculate_rewards(const cryptonote::block& block, std::vector<cryptonote::reward_payout> contributors);
 
-  bool add_block(cryptonote::network_type nettype, const cryptonote::block &block, const std::vector<cryptonote::transaction> &txs, std::vector<std::tuple<std::string, uint64_t>> contributors);
-  bool pop_block(cryptonote::network_type nettype, const cryptonote::block &block, const std::vector<cryptonote::transaction> &txs, std::vector<std::tuple<std::string, uint64_t>> contributors);
+  bool add_block(cryptonote::network_type nettype, const cryptonote::block &block, std::vector<cryptonote::reward_payout> contributors);
+  bool pop_block(cryptonote::network_type nettype, const cryptonote::block &block, std::vector<cryptonote::reward_payout> contributors);
 
   bool validate_batch_sn_reward_tx(uint8_t hf_version, uint64_t blockchain_height, cryptonote::transaction const &tx, std::string *reason);
   bool validate_batch_payment(std::vector<std::tuple<crypto::public_key, uint64_t>> batch_payment, std::vector<cryptonote::reward_payout> calculated_payment);
