@@ -22,9 +22,15 @@ namespace wallet
               "pubkey BLOB," // FIXME: should this be TEXT?
               ")");
 
+      db->exec("CREATE TABLE block_hashes ("
+              "id INTEGER PRIMARY KEY,"
+              "hash BLOB,"
+              ")");
+
       // CHECK (id = 0) restricts this table to a single row
       db->exec("CREATE TABLE metadata ("
               "id INTEGER PRIMARY KEY CHECK (id = 0),"
+              "db_version INTEGER,"
               "balance INTEGER,"
               "unlocked_balance INTEGER,"
               "last_scan_height INTEGER,"

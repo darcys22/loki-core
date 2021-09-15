@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vector>
+#include "output.hpp"
 
 #include <cryptonote_basic/cryptonote_basic.h>
+#include <device/device.hpp>
 
-#include "output.hpp"
-#include "keys.hpp"
+#include <vector>
 
 namespace wallet
 {
@@ -14,14 +14,14 @@ namespace wallet
   {
   public:
 
-    TransactionScanner(std::shared_ptr<Keys> _keys) : wallet_keys(_keys) {}
+    TransactionScanner(std::shared_ptr<hw::device> _keys) : wallet_keys(_keys) {}
 
     std::vector<Output> ScanTransactionReceived(const cryptonote::transaction& tx, const crypto::hash& tx_hash, uint64_t height, uint64_t timestamp);
     std::vector<Output> ScanTransactionSpent(const cryptonote::transaction& tx, const crypto::hash& tx_hash, uint64_t height, uint64_t timestamp);
 
   private:
 
-    std::shared_ptr<Keys> wallet_keys;
+    std::shared_ptr<hw::device> wallet_keys;
   };
 
 } // namespace wallet

@@ -35,7 +35,8 @@ namespace wallet
     //
     //      For subaddress:
     //          `R` = `s*D` for random `s`, `D` = recipient public spend key
-    auto derivation = wallet_keys->KeyDerivation(tx_public_keys[0]);
+
+
 
     // Output belongs to public key derived as follows:
     //      let `Hs` := hash_to_scalar
@@ -50,7 +51,8 @@ namespace wallet
 
       if (auto* output_target = std::get_if<cryptonote::txout_to_key>(&output.target))
       {
-        auto output_spend_key = wallet_keys->OutputSpendKey(derivation, output_target->key, output_index);
+        //FIXME: write this using hw::device
+        //auto output_spend_key = wallet_keys->OutputSpendKey(derivation, output_target->key, output_index);
 
         // TODO: check if we have a subaddress with public spend key `output_spend_key`
         //       if so, this output is for us.

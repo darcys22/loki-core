@@ -1,9 +1,10 @@
 #pragma once
 
-#include "keys.hpp"
 #include "transaction_scanner.hpp"
 #include "transaction_constructor.hpp"
 #include "daemon_comms.hpp"
+
+#include <device/device.hpp>
 
 #include <memory>
 #include <string_view>
@@ -17,7 +18,7 @@ namespace wallet
   {
   public:
 
-    Wallet(std::shared_ptr<Keys> _keys,
+    Wallet(std::shared_ptr<hw::device> _keys,
            std::shared_ptr<TransactionScanner> _txScanner,
            std::shared_ptr<TransactionConstructor> _txConstructor,
            std::shared_ptr<DaemonComms> _daemonComms,
@@ -40,7 +41,7 @@ namespace wallet
 
   private:
 
-    std::shared_ptr<Keys> keys;
+    std::shared_ptr<hw::device> keys;
     std::shared_ptr<TransactionScanner> txScanner;
     std::shared_ptr<TransactionConstructor> txConstructor;
   };
