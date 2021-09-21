@@ -36,6 +36,7 @@ namespace wallet
     //      For subaddress:
     //          `R` = `s*D` for random `s`, `D` = recipient public spend key
 
+    auto derivation = wallet_keys->generate_key_derivation(tx_public_keys[0]);
 
 
     // Output belongs to public key derived as follows:
