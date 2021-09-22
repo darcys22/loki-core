@@ -16,6 +16,7 @@ namespace wallet
   {
     const auto tx_public_keys = tx.get_public_keys();
 
+    std::vector<Output> received_outputs;
 
     if (tx_public_keys.empty())
     {
@@ -52,14 +53,21 @@ namespace wallet
 
       if (auto* output_target = std::get_if<cryptonote::txout_to_key>(&output.target))
       {
-        //FIXME: write this using hw::device
-        //auto output_spend_key = wallet_keys->OutputSpendKey(derivation, output_target->key, output_index);
+        auto sub_index = wallet_keys->output_and_derivation_ours(derivation, output_target->key, output_index);
 
-        // TODO: check if we have a subaddress with public spend key `output_spend_key`
-        //       if so, this output is for us.
+        if (not sub_index) continue; // not ours, move on to the next output
 
-        // auto subaddress_index = <check if we have the public key output_spend_key, get the subaddress index>
-        // auto key_image = wallet_keys->KeyImage(tx_public_keys[0], derivation, output_index, subaddress_index);
+        auto key_image = wallet_keys->key_image(derivation, output_target->key, output_index, *sub_index);
+
+        Output o;
+        o.key_image = key_image;
+        o.subaddress_index = *sub_index;
+        o.output_index = output_index;
+        o.tx_hash = tx_hash;
+        o.block_height = height;
+        o.block_time = timestamp;
+
+        received_outputs.push_back(std::move(o));
       }
       else
       {
@@ -69,7 +77,7 @@ namespace wallet
     }
 
 
-    return {};
+    return received_outputs;
   }
 
   std::vector<Output> TransactionScanner::ScanTransactionSpent(const cryptonote::transaction& tx, const crypto::hash& tx_hash, uint64_t height, uint64_t timestamp)

@@ -4,6 +4,7 @@
 #include <string>
 
 #include <crypto/crypto.h>
+#include <cryptonote_basic/subaddress_index.h>
 
 namespace wallet
 {
@@ -22,6 +23,8 @@ namespace wallet
 
     crypto::hash tx_hash;
     crypto::public_key key;
+    crypto::key_image key_image;
+    cryptonote::subaddress_index subaddress_index;
 
   };
 
