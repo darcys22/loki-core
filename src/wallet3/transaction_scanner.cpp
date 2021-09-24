@@ -57,9 +57,15 @@ namespace wallet
 
         if (not sub_index) continue; // not ours, move on to the next output
 
+        //TODO: device "conceal derivation" as needed
+
         auto key_image = wallet_keys->key_image(derivation, output_target->key, output_index, *sub_index);
 
         Output o;
+
+        // TODO: ringct mask returned by reference.  ugh.
+        auto amount = wallet_keys->output_amount(tx.rct_signatures, derivation, output_index, o.rct_mask);
+
         o.key_image = key_image;
         o.subaddress_index = *sub_index;
         o.output_index = output_index;
@@ -71,7 +77,7 @@ namespace wallet
       }
       else
       {
-        throw std::invalid_argument("Invalid output target, only txout_to_key is valid.");
+        throw std::invalid_argument("Invalid output target variant, only txout_to_key is valid.");
       }
 
     }

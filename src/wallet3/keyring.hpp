@@ -3,6 +3,7 @@
 #include <crypto/crypto.h>
 #include <cryptonote_basic/subaddress_index.h>
 #include <device/device_default.hpp>
+#include <ringct/rctSigs.h>
 
 #include <optional>
 
@@ -31,6 +32,8 @@ namespace wallet
     std::optional<cryptonote::subaddress_index> output_and_derivation_ours(const crypto::key_derivation& derivation, const crypto::public_key& output_key, uint64_t output_index);
 
     crypto::key_image key_image(const crypto::key_derivation& derivation, const crypto::public_key& output_key, uint64_t output_index, const cryptonote::subaddress_index& sub_index);
+
+    uint64_t output_amount(const rct::rctSig& rv, const crypto::key_derivation& derivation, unsigned int i, rct::key& mask);
 
     private:
       crypto::secret_key spend_private_key;

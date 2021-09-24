@@ -1,5 +1,7 @@
 #include "keyring.hpp"
 
+#include "wallet2½.hpp"
+
 #include <stdexcept>
 
 namespace wallet
@@ -57,6 +59,12 @@ namespace wallet
     crypto::key_image ret;
     key_device.generate_key_image(output_key, output_private_key, ret);
     return ret;
+  }
+
+  //TODO: replace later when removing wallet2½ layer
+  uint64_t Keyring::output_amount(const rct::rctSig& rv, const crypto::key_derivation& derivation, unsigned int i, rct::key& mask)
+  {
+    return wallet2½::output_amount(rv, derivation, i, mask, key_device);
   }
 
 } // namespace wallet

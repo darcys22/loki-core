@@ -5,6 +5,7 @@
 
 #include <crypto/crypto.h>
 #include <cryptonote_basic/subaddress_index.h>
+#include <ringct/rctTypes.h>
 
 namespace wallet
 {
@@ -23,6 +24,7 @@ namespace wallet
 
     crypto::hash tx_hash;
     crypto::public_key key;
+    rct::key rct_mask;
     crypto::key_image key_image;
     cryptonote::subaddress_index subaddress_index;
 

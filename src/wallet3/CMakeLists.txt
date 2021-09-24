@@ -4,7 +4,8 @@ add_library(wallet3
   keyring.cpp
   transaction_constructor.cpp
   transaction_scanner.cpp
-  wallet.cpp)
+  wallet.cpp
+  wallet2½.cpp)
 
 target_link_libraries(wallet3
   PRIVATE
