@@ -4,6 +4,6 @@
 
 namespace wallet
 {
-
-  void create_schema(SQLite::Database& db);
+  void
+  create_schema(SQLite::Database& db);
 }

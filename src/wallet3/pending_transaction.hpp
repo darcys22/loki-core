@@ -10,13 +10,14 @@
 
 namespace wallet
 {
-  struct version {}; // XXX: placeholder type
+  struct version
+  {};  // XXX: placeholder type
 
   struct PendingTransaction
   {
     version txVersion;
 
-    std::vector<std::pair<address, uint64_t> > recipients; // does not include change
+    std::vector<std::pair<address, uint64_t>> recipients;  // does not include change
 
     std::pair<address, uint64_t> change;
 
@@ -27,4 +28,4 @@ namespace wallet
     std::vector<Output> chosenOutputs;
   };
 
-} // namespace wallet
+}  // namespace wallet

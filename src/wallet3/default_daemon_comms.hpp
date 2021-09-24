@@ -6,9 +6,7 @@
 
 namespace wallet
 {
-
   class DefaultDaemonComms : public DaemonComms
-  {
-  };
+  {};
 
-} // namespace wallet
+}  // namespace wallet

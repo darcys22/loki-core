@@ -2,13 +2,14 @@
 
 namespace wallet
 {
+  // FIXME: BLOB or TEXT for binary data below?
+  void
+  create_schema(SQLite::Database& db)
+  {
+    if (db.tableExists("outputs"))
+      return;
 
-    //FIXME: BLOB or TEXT for binary data below?
-    void create_schema(SQLite::Database& db)
-    {
-      if (db.tableExists("outputs")) return;
-
-      db.exec(
+    db.exec(
         R"(
           CREATE TABLE outputs (
             id INTEGER PRIMARY KEY,
@@ -61,9 +62,7 @@ namespace wallet
 
           -- insert metadata row as default
           INSERT INTO metadata VALUES (NULL,0,0,0);
-        )"
-      );
-    }
+        )");
+  }
 
-} // namespace wallet
-
+}  // namespace wallet

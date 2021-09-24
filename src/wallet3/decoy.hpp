@@ -4,9 +4,8 @@
 
 namespace wallet
 {
-
   struct Decoy
   {
     // TODO: this
   };
-}
+}  // namespace wallet

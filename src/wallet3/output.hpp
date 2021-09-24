@@ -9,7 +9,6 @@
 
 namespace wallet
 {
-
   struct Output
   {
     uint64_t amount;
@@ -26,7 +25,6 @@ namespace wallet
     rct::key rct_mask;
     crypto::key_image key_image;
     cryptonote::subaddress_index subaddress_index;
-
   };
 
-} // namespace wallet
+}  // namespace wallet

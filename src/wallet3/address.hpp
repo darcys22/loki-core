@@ -3,5 +3,6 @@
 namespace wallet
 {
   // TODO: placeholder
-  class address {};
-}
+  class address
+  {};
+}  // namespace wallet

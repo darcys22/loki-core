@@ -23,13 +23,14 @@ fi
 
 cd "$(dirname $0)/../"
 if [ "$1" = "verify" ] ; then
-    for d in $TARGET_DIRS; do
+    for d in ${TARGET_DIRS[@]}; do
         if [ $($binary --output-replacements-xml $(find $d | grep -E '\.([hc](pp)?|mm?)$' | grep -v '\#') | grep '</replacement>' | wc -l) -ne 0 ] ; then
             exit 1
         fi
     done
 else
-    for d in $TARGET_DIRS; do
+    for d in ${TARGET_DIRS[@]}; do
+        echo "Formatting $d"
         $binary -i $(find $d | grep -E '\.([hc](pp)?|mm)$' | grep -v '\#') &> /dev/null
     done
 fi

@@ -9,20 +9,27 @@
 
 namespace wallet
 {
-
   class TransactionScanner
   {
-  public:
+   public:
+    TransactionScanner(std::shared_ptr<Keyring> _keys) : wallet_keys(_keys)
+    {}
 
-    TransactionScanner(std::shared_ptr<Keyring> _keys) : wallet_keys(_keys) {}
+    std::vector<Output>
+    ScanTransactionReceived(
+        const cryptonote::transaction& tx,
+        const crypto::hash& tx_hash,
+        uint64_t height,
+        uint64_t timestamp);
+    std::vector<Output>
+    ScanTransactionSpent(
+        const cryptonote::transaction& tx,
+        const crypto::hash& tx_hash,
+        uint64_t height,
+        uint64_t timestamp);
 
-    std::vector<Output> ScanTransactionReceived(const cryptonote::transaction& tx, const crypto::hash& tx_hash, uint64_t height, uint64_t timestamp);
-    std::vector<Output> ScanTransactionSpent(const cryptonote::transaction& tx, const crypto::hash& tx_hash, uint64_t height, uint64_t timestamp);
-
-  private:
-
+   private:
     std::shared_ptr<Keyring> wallet_keys;
   };
 
-} // namespace wallet
-
+}  // namespace wallet
