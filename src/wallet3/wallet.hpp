@@ -51,7 +51,7 @@ namespace wallet
 
    private:
     void
-    AddBlock(const cryptonote::block& block, const uint64_t height);
+    AddBlock(const cryptonote::block& block, const std::vector<cryptonote::transaction>& transactions, const crypto::hash& block_hash, const uint64_t height);
 
     std::shared_ptr<Keyring> keys;
     std::shared_ptr<TransactionScanner> txScanner;

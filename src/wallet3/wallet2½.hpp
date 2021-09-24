@@ -3,6 +3,7 @@
 #include <crypto/crypto.h>
 #include <ringct/rctTypes.h>
 #include <device/device.hpp>
+#include <cryptonote_basic/cryptonote_basic.h>
 
 namespace wallet2½
 {
@@ -13,5 +14,7 @@ namespace wallet2½
       unsigned int i,
       rct::key& mask,
       hw::device& hwdev);
+
+  crypto::hash tx_hash(const cryptonote::transaction& tx);
 
 }  // namespace wallet2½
