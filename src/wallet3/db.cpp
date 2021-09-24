@@ -6,6 +6,7 @@ namespace wallet
   namespace
   {
 
+    //FIXME: BLOB or TEXT for binary data below?
     void InitDB(std::shared_ptr<SQLite::Database> db)
     {
       db->exec("CREATE TABLE outputs ("
@@ -15,16 +16,28 @@ namespace wallet
               "unlock_time INTEGER,"
               "block_height INTEGER,"
               "block_time INTEGER,"
-              "spending INTEGER," // boolean
+              "spending BOOLEAN,"
               "spent_height INTEGER,"
               "spent_time INTEGER,"
-              "tx_hash BLOB," // FIXME: should this be TEXT?
-              "pubkey BLOB," // FIXME: should this be TEXT?
+              "tx_hash BLOB,"
+              "key BLOB,"
+              "rct_mask BLOB,"
+              "key_image BLOB,"
+              "FOREIGN KEY(subaddress_major, subaddress_minor) REFERENCES subaddresses(major_index, minor_index)"
               ")");
 
-      db->exec("CREATE TABLE block_hashes ("
+      db->exec("CREATE TABLE blocks ("
               "id INTEGER PRIMARY KEY,"
               "hash BLOB,"
+              ")");
+
+      db->exec("CREATE TABLE subaddresses ("
+              "major_index INTEGER,"
+              "minor_index INTEGER,"
+              // will default scan many subaddresses, even if never used, so it is useful to mark
+              // if they have been used (for culling this list later, perhaps)
+              "used BOOLEAN,"
+              "PRIMARY KEY(major_index, minor_index)"
               ")");
 
       // CHECK (id = 0) restricts this table to a single row
@@ -65,28 +78,14 @@ namespace wallet
 
   std::shared_ptr<SQLite::Database> CreateDB(std::string_view filename, std::string_view password)
   {
-    try
-    {
-      return OpenOrCreateDB(filename, password, /* create = */ true);
-    }
-    catch (const std::exception& e)
-    {
-      // TODO: error reporting/handling, e.g. file alredy exists
-      return nullptr;
-    }
+    return OpenOrCreateDB(filename, password, /* create = */ true);
+    // TODO: error reporting/handling, e.g. file alredy exists
   }
 
   std::shared_ptr<SQLite::Database> OpenDB(std::string_view filename, std::string_view password)
   {
-    try
-    {
-      return OpenOrCreateDB(filename, password, /* create = */ false);
-    }
-    catch (const std::exception& e)
-    {
-      // TODO: error reporting/handling, e.g. catching wrong password, file does not exist
-      return nullptr;
-    }
+    return OpenOrCreateDB(filename, password, /* create = */ false);
+    // TODO: error reporting/handling, e.g. catching wrong password, file does not exist
   }
 
 }

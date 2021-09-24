@@ -6,6 +6,7 @@
 namespace wallet
 {
 
-  std::shared_ptr<SQLite::Database> OpenDB(std::string_view filename, std::string_view password);
+  std::shared_ptr<SQLite::Database> CreateDB(std::string_view filename, std::string_view password);
 
+  std::shared_ptr<SQLite::Database> OpenDB(std::string_view filename, std::string_view password);
 }

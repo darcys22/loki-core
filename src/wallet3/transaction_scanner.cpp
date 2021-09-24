@@ -24,21 +24,7 @@ namespace wallet
       return {};
     }
 
-    // simple case first, handle only first found tx pubkey
-    // TODO: handle all tx pub keys
-
-    // Derivation = a*R where
-    //      `a` is the private view key of the recipient
-    //      `R` is the tx public key for the output
-    //
-    //      For standard address:
-    //          `R` = `r*G` for random `r`
-    //
-    //      For subaddress:
-    //          `R` = `s*D` for random `s`, `D` = recipient public spend key
-
     auto derivations = wallet_keys->generate_key_derivations(tx_public_keys);
-
 
     // Output belongs to public key derived as follows:
     //      let `Hs` := hash_to_scalar

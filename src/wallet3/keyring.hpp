@@ -25,6 +25,15 @@ namespace wallet
     {
     }
 
+    // Derivation = a*R where
+    //      `a` is the private view key of the recipient
+    //      `R` is the tx public key for the output
+    //
+    //      For standard address:
+    //          `R` = `r*G` for random `r`
+    //
+    //      For subaddress:
+    //          `R` = `s*D` for random `s`, `D` = recipient public spend key
     crypto::key_derivation generate_key_derivation(const crypto::public_key &tx_pubkey) const;
 
     std::vector<crypto::key_derivation> generate_key_derivations(const std::vector<crypto::public_key> &tx_pubkeys) const;

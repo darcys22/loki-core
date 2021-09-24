@@ -6,6 +6,8 @@
 
 #include "keyring.hpp"
 
+#include <SQLiteCpp/SQLiteCpp.h>
+
 #include <memory>
 #include <string_view>
 
@@ -41,9 +43,13 @@ namespace wallet
 
   private:
 
+    void AddBlock(const cryptonote::block& block, const uint64_t height);
+
     std::shared_ptr<Keyring> keys;
     std::shared_ptr<TransactionScanner> txScanner;
     std::shared_ptr<TransactionConstructor> txConstructor;
+
+    std::shared_ptr<SQLite::Database> db;
   };
 
 } // namespace wallet

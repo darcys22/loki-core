@@ -12,7 +12,6 @@ namespace wallet
 
   struct Output
   {
-    uint64_t rowid; // FIXME: not sure if needed...
     uint64_t amount;
     uint64_t output_index;
     uint64_t unlock_time;
