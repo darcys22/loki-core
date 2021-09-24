@@ -1,5 +1,5 @@
 add_library(wallet3
-  db.cpp
+  db_schema.cpp
   default_daemon_comms.cpp
   keyring.cpp
   transaction_constructor.cpp

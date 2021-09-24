@@ -21,10 +21,10 @@ namespace wallet
   void
   Wallet::AddBlock(const cryptonote::block& block, const uint64_t height)
   {
-    SQLite::Transaction db_tx(*db);
+    SQLite::Transaction db_tx(db.db);
 
-    tools::type_to_hex
-    db->exec("INSERT INTO blocks VALUES 
+    //tools::type_to_hex
+    //db->exec("INSERT INTO blocks VALUES 
   }
 
 }  // namespace wallet

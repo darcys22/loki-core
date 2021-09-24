@@ -2,7 +2,6 @@
 
 #include <cryptonote_basic/cryptonote_basic.h>
 #include "address.hpp"
-#include "db.hpp"
 #include "output.hpp"
 
 #include <vector>
