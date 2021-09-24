@@ -1,6 +1,10 @@
 #include "wallet.hpp"
 
-#include "db.hpp"
+#include "db_schema.hpp"
+
+#include <common/hex.h>
+
+#include <filesystem>
 
 namespace wallet
 {
@@ -11,20 +15,17 @@ namespace wallet
                  std::shared_ptr<DaemonComms> _daemonComms,
                  std::string_view dbFilename,
                  std::string_view dbPassword)
+    :
+      db(std::filesystem::path(dbFilename), dbPassword)
   {
-    try
-    {
-      db = wallet::OpenDB(dbFilename, dbPassword);
-    }
-    catch (...)
-    {
-      // may throw
-      db = wallet::CreateDB(dbFilename, dbPassword);
-    }
   }
 
   void Wallet::AddBlock(const cryptonote::block& block, const uint64_t height)
   {
+    SQLite::Transaction db_tx(*db);
+
+    tools::type_to_hex
+    db->exec("INSERT INTO blocks VALUES 
   }
 
 }

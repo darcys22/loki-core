@@ -3,8 +3,9 @@
 #include "transaction_scanner.hpp"
 #include "transaction_constructor.hpp"
 #include "daemon_comms.hpp"
-
 #include "keyring.hpp"
+
+#include <sqlitedb/database.hpp>
 
 #include <SQLiteCpp/SQLiteCpp.h>
 
@@ -49,7 +50,7 @@ namespace wallet
     std::shared_ptr<TransactionScanner> txScanner;
     std::shared_ptr<TransactionConstructor> txConstructor;
 
-    std::shared_ptr<SQLite::Database> db;
+    db::Database db;
   };
 
 } // namespace wallet

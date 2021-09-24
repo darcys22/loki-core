@@ -2,6 +2,8 @@
 
 CLANG_FORMAT_DESIRED_VERSION=11
 
+TARGET_DIRS=(src/wallet3 src/sqlitedb)
+
 binary=$(which clang-format-$CLANG_FORMAT_DESIRED_VERSION 2>/dev/null)
 if [ $? -ne 0 ]; then
     binary=$(which clang-format-mp-$CLANG_FORMAT_DESIRED_VERSION 2>/dev/null)
@@ -21,11 +23,15 @@ fi
 
 cd "$(dirname $0)/../"
 if [ "$1" = "verify" ] ; then
-    if [ $($binary --output-replacements-xml $(find src/wallet3 | grep -E '\.([hc](pp)?|mm?)$' | grep -v '\#') | grep '</replacement>' | wc -l) -ne 0 ] ; then
-        exit 1
-    fi
+    for d in $TARGET_DIRS; do
+        if [ $($binary --output-replacements-xml $(find $d | grep -E '\.([hc](pp)?|mm?)$' | grep -v '\#') | grep '</replacement>' | wc -l) -ne 0 ] ; then
+            exit 1
+        fi
+    done
 else
-    $binary -i $(find src/wallet3 | grep -E '\.([hc](pp)?|mm)$' | grep -v '\#') &> /dev/null
+    for d in $TARGET_DIRS; do
+        $binary -i $(find $d | grep -E '\.([hc](pp)?|mm)$' | grep -v '\#') &> /dev/null
+    done
 fi
 
 swift_format=$(which swiftformat 2>/dev/null)
