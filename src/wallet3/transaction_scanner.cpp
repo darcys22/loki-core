@@ -37,7 +37,7 @@ namespace wallet
     //      For subaddress:
     //          `R` = `s*D` for random `s`, `D` = recipient public spend key
 
-    auto derivation = wallet_keys->generate_key_derivation(tx_public_keys[0]);
+    auto derivations = wallet_keys->generate_key_derivations(tx_public_keys);
 
 
     // Output belongs to public key derived as follows:
@@ -53,18 +53,24 @@ namespace wallet
 
       if (auto* output_target = std::get_if<cryptonote::txout_to_key>(&output.target))
       {
-        auto sub_index = wallet_keys->output_and_derivation_ours(derivation, output_target->key, output_index);
+        size_t derivation_index = 0;
+        std::optional<cryptonote::subaddress_index> sub_index{std::nullopt};
+        for (derivation_index = 0; derivation_index < derivations.size(); derivation_index++)
+        {
+          sub_index = wallet_keys->output_and_derivation_ours(derivations[derivation_index], output_target->key, output_index);
+          if (sub_index) break;
+        }
 
         if (not sub_index) continue; // not ours, move on to the next output
 
         //TODO: device "conceal derivation" as needed
 
-        auto key_image = wallet_keys->key_image(derivation, output_target->key, output_index, *sub_index);
+        auto key_image = wallet_keys->key_image(derivations[derivation_index], output_target->key, output_index, *sub_index);
 
         Output o;
 
         // TODO: ringct mask returned by reference.  ugh.
-        auto amount = wallet_keys->output_amount(tx.rct_signatures, derivation, output_index, o.rct_mask);
+        auto amount = wallet_keys->output_amount(tx.rct_signatures, derivations[derivation_index], output_index, o.rct_mask);
 
         o.key_image = key_image;
         o.subaddress_index = *sub_index;

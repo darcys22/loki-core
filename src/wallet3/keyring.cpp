@@ -12,6 +12,17 @@ namespace wallet
     return crypto::generate_key_derivation(tx_pubkey, view_private_key);
   }
 
+  std::vector<crypto::key_derivation> Keyring::generate_key_derivations(const std::vector<crypto::public_key> &tx_pubkeys) const
+  {
+    std::vector<crypto::key_derivation> derivations;
+    for (const auto& key : tx_pubkeys)
+    {
+      derivations.push_back(generate_key_derivation(key));
+    }
+    return derivations;
+  }
+
+
   crypto::public_key Keyring::output_spend_key(const crypto::key_derivation& derivation, const crypto::public_key& output_key, uint64_t output_index)
   {
     crypto::public_key ret;

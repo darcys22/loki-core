@@ -27,6 +27,8 @@ namespace wallet
 
     crypto::key_derivation generate_key_derivation(const crypto::public_key &tx_pubkey) const;
 
+    std::vector<crypto::key_derivation> generate_key_derivations(const std::vector<crypto::public_key> &tx_pubkeys) const;
+
     crypto::public_key output_spend_key(const crypto::key_derivation& derivation, const crypto::public_key& output_key, uint64_t output_index);
 
     std::optional<cryptonote::subaddress_index> output_and_derivation_ours(const crypto::key_derivation& derivation, const crypto::public_key& output_key, uint64_t output_index);
