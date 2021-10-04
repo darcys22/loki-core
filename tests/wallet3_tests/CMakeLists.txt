@@ -1,6 +1,7 @@
 
 
 add_executable(wallet3_tests
+  scan_received.cpp
   sign.cpp
   verify.cpp
   decoy.cpp

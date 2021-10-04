@@ -32,32 +32,32 @@ namespace wallet
     //
     //      For subaddress:
     //          `R` = `s*D` for random `s`, `D` = recipient public spend key
-    crypto::key_derivation
+    virtual crypto::key_derivation
     generate_key_derivation(const crypto::public_key& tx_pubkey) const;
 
-    std::vector<crypto::key_derivation>
+    virtual std::vector<crypto::key_derivation>
     generate_key_derivations(const std::vector<crypto::public_key>& tx_pubkeys) const;
 
-    crypto::public_key
+    virtual crypto::public_key
     output_spend_key(
         const crypto::key_derivation& derivation,
         const crypto::public_key& output_key,
         uint64_t output_index);
 
-    std::optional<cryptonote::subaddress_index>
+    virtual std::optional<cryptonote::subaddress_index>
     output_and_derivation_ours(
         const crypto::key_derivation& derivation,
         const crypto::public_key& output_key,
         uint64_t output_index);
 
-    crypto::key_image
+    virtual crypto::key_image
     key_image(
         const crypto::key_derivation& derivation,
         const crypto::public_key& output_key,
         uint64_t output_index,
         const cryptonote::subaddress_index& sub_index);
 
-    uint64_t
+    virtual uint64_t
     output_amount(
         const rct::rctSig& rv,
         const crypto::key_derivation& derivation,

@@ -9,28 +9,11 @@ namespace wallet
     if (db.tableExists("outputs"))
       return;
 
+    SQLite::Transaction db_tx(db);
+
+    // TODO: set up removal triggers
     db.exec(
         R"(
-          CREATE TABLE outputs (
-            id INTEGER PRIMARY KEY,
-            amount INTEGER,
-            output_index INTEGER,
-            unlock_time INTEGER,
-            block_height INTEGER,
-            block_time INTEGER,
-            spending BOOLEAN,
-            spent_height INTEGER,
-            spent_time INTEGER,
-            tx INTEGER,
-            FOREIGN KEY(tx) REFERENCES transactions(id),
-            key BLOB,
-            rct_mask BLOB,
-            key_image BLOB,
-            subaddress_major INTEGER,
-            subaddress_minor INTEGER,
-            FOREIGN KEY(subaddress_major, subaddress_minor) REFERENCES subaddresses(major_index, minor_index)
-          );
-
           CREATE TABLE blocks (
             id INTEGER PRIMARY KEY,
             hash TEXT
@@ -59,6 +42,34 @@ namespace wallet
             last_scan_height INTEGER
           );
 
+          CREATE TABLE outputs (
+            id INTEGER PRIMARY KEY,
+            amount INTEGER,
+            output_index INTEGER,
+            unlock_time INTEGER,
+            block_height INTEGER,
+            block_time INTEGER,
+            spending BOOLEAN,
+            spent_height INTEGER,
+            spent_time INTEGER,
+            tx INTEGER,
+            FOREIGN KEY(tx) REFERENCES transactions(id),
+            key BLOB,
+            rct_mask BLOB,
+            key_image BLOB,
+            subaddress_major INTEGER,
+            subaddress_minor INTEGER,
+            FOREIGN KEY(subaddress_major, subaddress_minor) REFERENCES subaddresses(major_index, minor_index)
+          );
+
+          CREATE TABLE spends (
+            id INTEGER PRIMARY KEY,
+            key_image BLOB,
+            height INTEGER,
+            tx INTEGER,
+            FOREIGN KEY(height) REFERENCES blocks(id),
+            FOREIGN KEY(tx) REFERENCES transactions(id)
+          );
 
           -- insert metadata row as default
           INSERT INTO metadata VALUES (NULL,0,0,0);

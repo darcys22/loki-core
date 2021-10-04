@@ -67,6 +67,7 @@ namespace wallet
         auto amount = wallet_keys->output_amount(
             tx.rct_signatures, derivations[derivation_index], output_index, o.rct_mask);
 
+        o.amount = amount;
         o.key_image = key_image;
         o.subaddress_index = *sub_index;
         o.output_index = output_index;

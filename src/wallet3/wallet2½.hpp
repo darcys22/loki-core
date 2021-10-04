@@ -15,6 +15,7 @@ namespace wallet2½
       rct::key& mask,
       hw::device& hwdev);
 
-  crypto::hash tx_hash(const cryptonote::transaction& tx);
+  crypto::hash
+  tx_hash(const cryptonote::transaction& tx);
 
 }  // namespace wallet2½

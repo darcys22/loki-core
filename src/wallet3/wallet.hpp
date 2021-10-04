@@ -5,12 +5,13 @@
 #include "daemon_comms.hpp"
 #include "keyring.hpp"
 
-#include <sqlitedb/database.hpp>
-
-#include <SQLiteCpp/SQLiteCpp.h>
-
 #include <memory>
 #include <string_view>
+
+namespace db
+{
+  class Database;
+}
 
 namespace wallet
 {
@@ -51,13 +52,17 @@ namespace wallet
 
    private:
     void
-    AddBlock(const cryptonote::block& block, const std::vector<cryptonote::transaction>& transactions, const crypto::hash& block_hash, const uint64_t height);
+    AddBlock(
+        const cryptonote::block& block,
+        const std::vector<cryptonote::transaction>& transactions,
+        const crypto::hash& block_hash,
+        const uint64_t height);
 
     std::shared_ptr<Keyring> keys;
     std::shared_ptr<TransactionScanner> txScanner;
     std::shared_ptr<TransactionConstructor> txConstructor;
 
-    db::Database db;
+    std::unique_ptr<db::Database> db;
   };
 
 }  // namespace wallet

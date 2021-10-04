@@ -32,12 +32,13 @@ namespace wallet2½
     }
   }
 
-  crypto::hash tx_hash(const cryptonote::transaction& tx)
+  crypto::hash
+  tx_hash(const cryptonote::transaction& tx)
   {
     crypto::hash h;
 
     // this can technically return false, but practially won't and will be replaced.
-    cryptonote::calculate_transaction_hash(tx, h, nullptr);
+    cryptonote::get_transaction_hash(tx, h, nullptr);
     return h;
   }
 }  // namespace wallet2½
