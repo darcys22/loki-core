@@ -15,64 +15,114 @@ namespace wallet
     db.exec(
         R"(
           CREATE TABLE blocks (
-            id INTEGER PRIMARY KEY,
-            hash TEXT
+            id INTEGER NOT NULL PRIMARY KEY,
+            hash TEXT NOT NULL
           );
 
           CREATE TABLE transactions (
-            id INTEGER PRIMARY KEY,
-            hash TEXT
+            id INTEGER NOT NULL PRIMARY KEY,
+            block INTEGER NOT NULL REFERENCES blocks(id) ON DELETE CASCADE,
+            hash TEXT NOT NULL
           );
 
           -- will default scan many subaddresses, even if never used, so it is useful to mark
           -- if they have been used (for culling this list later, perhaps)
           CREATE TABLE subaddresses (
-            major_index INTEGER,
-            minor_index INTEGER,
-            used BOOLEAN,
+            major_index INTEGER NOT NULL,
+            minor_index INTEGER NOT NULL,
+            used BOOLEAN NOT NULL DEFAULT FALSE,
             PRIMARY KEY(major_index, minor_index)
           );
 
+          -- default "main" subaddress
+          INSERT INTO subaddresses VALUES (0,0,TRUE);
+
           -- CHECK (id = 0) restricts this table to a single row
           CREATE TABLE metadata (
-            id INTEGER PRIMARY KEY CHECK (id = 0),
-            db_version INTEGER,
-            balance INTEGER,
-            unlocked_balance INTEGER,
-            last_scan_height INTEGER
+            id INTEGER NOT NULL PRIMARY KEY CHECK (id = 0),
+            db_version INTEGER NOT NULL DEFAULT 0,
+            balance INTEGER NOT NULL DEFAULT 0,
+            unlocked_balance INTEGER NOT NULL DEFAULT 0,
+            last_scan_height INTEGER NOT NULL DEFAULT 0
+          );
+          -- insert metadata row as default
+          INSERT INTO metadata VALUES (0,0,0,0,0);
+
+          CREATE TABLE key_images (
+            id INTEGER NOT NULL PRIMARY KEY,
+            key_image BLOB NOT NULL
           );
 
           CREATE TABLE outputs (
-            id INTEGER PRIMARY KEY,
-            amount INTEGER,
-            output_index INTEGER,
-            unlock_time INTEGER,
-            block_height INTEGER,
-            block_time INTEGER,
-            spending BOOLEAN,
-            spent_height INTEGER,
-            spent_time INTEGER,
-            tx INTEGER,
-            FOREIGN KEY(tx) REFERENCES transactions(id),
-            key BLOB,
-            rct_mask BLOB,
-            key_image BLOB,
-            subaddress_major INTEGER,
-            subaddress_minor INTEGER,
+            id INTEGER NOT NULL PRIMARY KEY,
+            amount INTEGER NOT NULL,
+            output_index INTEGER NOT NULL,
+            unlock_time INTEGER NOT NULL,
+            block_height INTEGER NOT NULL REFERENCES blocks(id),
+            spending BOOLEAN NOT NULL,
+            spent_height INTEGER NOT NULL DEFAULT 0,
+            tx INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+            output_key BLOB NOT NULL,
+            rct_mask BLOB NOT NULL,
+            key_image INTEGER NOT NULL REFERENCES key_images(id),
+            subaddress_major INTEGER NOT NULL,
+            subaddress_minor INTEGER NOT NULL,
             FOREIGN KEY(subaddress_major, subaddress_minor) REFERENCES subaddresses(major_index, minor_index)
           );
+          CREATE INDEX output_key_image ON outputs(key_image);
+
+          -- update balance when new output added
+          CREATE TRIGGER output_received AFTER INSERT ON outputs
+          FOR EACH ROW
+          BEGIN
+            UPDATE metadata SET balance = balance + NEW.amount WHERE id = 0;
+          END;
+
+          -- update balance when output removed (blockchain re-org)
+          CREATE TRIGGER output_removed AFTER DELETE ON outputs
+          FOR EACH ROW
+          BEGIN
+            UPDATE metadata SET balance = balance - OLD.amount WHERE id = 0;
+          END;
 
           CREATE TABLE spends (
             id INTEGER PRIMARY KEY,
-            key_image BLOB,
-            height INTEGER,
-            tx INTEGER,
-            FOREIGN KEY(height) REFERENCES blocks(id),
-            FOREIGN KEY(tx) REFERENCES transactions(id)
+            key_image INTEGER NOT NULL REFERENCES key_images(id),
+            height INTEGER REFERENCES blocks(id) ON DELETE CASCADE,
+            tx INTEGER REFERENCES transactions(id),
+            UNIQUE(key_image)
           );
+          CREATE INDEX spend_key_image ON spends(key_image);
 
-          -- insert metadata row as default
-          INSERT INTO metadata VALUES (NULL,0,0,0);
+          -- update output and balance when output seen as spent
+          CREATE TRIGGER output_spend_received AFTER INSERT ON spends
+          FOR EACH ROW
+          BEGIN
+            UPDATE outputs SET spent_height = NEW.height WHERE key_image = NEW.key_image;
+            UPDATE metadata SET balance = balance - (SELECT outputs.amount FROM outputs WHERE outputs.key_image = NEW.key_image);
+          END;
+
+          -- update output and balance when output un-seen as spent (blockchain re-org)
+          CREATE TRIGGER output_spend_removed AFTER DELETE ON spends
+          FOR EACH ROW
+          BEGIN
+            UPDATE outputs SET spent_height = 0 WHERE key_image = OLD.key_image;
+            UPDATE metadata SET balance = balance + (SELECT outputs.amount FROM outputs WHERE outputs.key_image = OLD.key_image);
+          END;
+
+          CREATE TRIGGER key_image_output_removed_cleaner AFTER DELETE ON outputs
+          FOR EACH ROW WHEN (SELECT COUNT(*) FROM outputs WHERE key_image = OLD.key_image) = 0
+            AND (SELECT COUNT(*) FROM spends WHERE key_image = OLD.key_image) = 0
+          BEGIN
+            DELETE FROM key_images WHERE id = OLD.key_image;   
+          END;
+
+          CREATE TRIGGER key_image_spend_removed_cleaner AFTER DELETE ON spends
+          FOR EACH ROW WHEN (SELECT COUNT(*) FROM outputs WHERE key_image = OLD.key_image) = 0
+          BEGIN
+            DELETE FROM key_images WHERE id = OLD.key_image;   
+          END;
+
         )");
   }
 
