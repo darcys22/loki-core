@@ -12,6 +12,7 @@ namespace wallet
     SQLite::Transaction db_tx(db);
 
     // TODO: set up removal triggers
+    // TODO: table for balance "per account"
     db.exec(
         R"(
           CREATE TABLE blocks (
