@@ -1,6 +1,6 @@
 #include "mock_keyring.hpp"
 
-#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch.hpp>
 
 #include <wallet3/transaction_scanner.hpp>
 #include <crypto/crypto.h>
