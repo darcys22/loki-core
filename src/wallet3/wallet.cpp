@@ -48,6 +48,8 @@ namespace wallet
         // TODO: this
       }
     }
+
+    db_tx.commit();
   }
 
 }  // namespace wallet

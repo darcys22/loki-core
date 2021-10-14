@@ -1,6 +1,7 @@
 
 
 add_executable(wallet3_tests
+  db_schema.cpp
   scan_received.cpp
   sign.cpp
   verify.cpp
@@ -11,6 +12,7 @@ add_executable(wallet3_tests
 target_link_libraries(wallet3_tests
   PRIVATE
   Catch2::Catch2
+  SQLiteCpp
   ringct
   wallet3)
 

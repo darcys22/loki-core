@@ -16,13 +16,13 @@ namespace wallet
     db.exec(
         R"(
           CREATE TABLE blocks (
-            id INTEGER NOT NULL PRIMARY KEY,
+            height INTEGER PRIMARY KEY AUTOINCREMENT,
             hash TEXT NOT NULL
           );
 
           CREATE TABLE transactions (
             id INTEGER NOT NULL PRIMARY KEY,
-            block INTEGER NOT NULL REFERENCES blocks(id) ON DELETE CASCADE,
+            block INTEGER NOT NULL REFERENCES blocks(height) ON DELETE CASCADE,
             hash TEXT NOT NULL
           );
 
@@ -51,7 +51,8 @@ namespace wallet
 
           CREATE TABLE key_images (
             id INTEGER NOT NULL PRIMARY KEY,
-            key_image BLOB NOT NULL
+            key_image BLOB NOT NULL,
+            UNIQUE(key_image)
           );
 
           CREATE TABLE outputs (
@@ -59,7 +60,7 @@ namespace wallet
             amount INTEGER NOT NULL,
             output_index INTEGER NOT NULL,
             unlock_time INTEGER NOT NULL,
-            block_height INTEGER NOT NULL REFERENCES blocks(id),
+            block_height INTEGER NOT NULL REFERENCES blocks(height),
             spending BOOLEAN NOT NULL,
             spent_height INTEGER NOT NULL DEFAULT 0,
             tx INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
@@ -89,7 +90,7 @@ namespace wallet
           CREATE TABLE spends (
             id INTEGER PRIMARY KEY,
             key_image INTEGER NOT NULL REFERENCES key_images(id),
-            height INTEGER REFERENCES blocks(id) ON DELETE CASCADE,
+            height INTEGER REFERENCES blocks(height) ON DELETE CASCADE,
             tx INTEGER REFERENCES transactions(id),
             UNIQUE(key_image)
           );
@@ -125,6 +126,8 @@ namespace wallet
           END;
 
         )");
+
+    db_tx.commit();
   }
 
 }  // namespace wallet
