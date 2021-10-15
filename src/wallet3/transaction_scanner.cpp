@@ -1,5 +1,6 @@
 #include "transaction_scanner.hpp"
 
+#include <sqlitedb/database.hpp>
 #include <common/string_util.h>
 
 #include <vector>
@@ -74,6 +75,8 @@ namespace wallet
         o.tx_hash = tx_hash;
         o.block_height = height;
         o.block_time = timestamp;
+        o.unlock_time = tx.get_unlock_time(output_index);
+        o.key = output_target->key;
 
         received_outputs.push_back(std::move(o));
       }
@@ -86,14 +89,23 @@ namespace wallet
     return received_outputs;
   }
 
-  std::vector<Output>
-  TransactionScanner::ScanTransactionSpent(
-      const cryptonote::transaction& tx,
-      const crypto::hash& tx_hash,
-      uint64_t height,
-      uint64_t timestamp)
+  std::vector<crypto::key_image>
+  TransactionScanner::ScanTransactionSpent(const cryptonote::transaction& tx)
   {
-    return {};
+    std::vector<crypto::key_image> spends;
+
+    for (size_t input_index = 0; input_index < tx.vin.size(); input_index++)
+    {
+      const auto& input_variant = tx.vin[input_index];
+      if (auto* input = std::get_if<cryptonote::txin_to_key>(&input_variant))
+      {
+        auto our_spend = db->prepared_get<int>("SELECT COUNT(*) FROM key_images WHERE key_image = ?", tools::type_to_hex(input->k_image));
+
+        if (our_spend > 0)
+          spends.push_back(input->k_image);
+      }
+    }
+    return spends;
   }
 
 }  // namespace wallet

@@ -16,14 +16,16 @@ namespace wallet
     db.exec(
         R"(
           CREATE TABLE blocks (
-            height INTEGER PRIMARY KEY AUTOINCREMENT,
-            hash TEXT NOT NULL
+            height INTEGER NOT NULL PRIMARY KEY,
+            hash TEXT NOT NULL,
+            timestamp INTEGER NOT NULL
           );
 
           CREATE TABLE transactions (
-            id INTEGER NOT NULL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             block INTEGER NOT NULL REFERENCES blocks(height) ON DELETE CASCADE,
-            hash TEXT NOT NULL
+            hash TEXT NOT NULL,
+            UNIQUE(hash)
           );
 
           -- will default scan many subaddresses, even if never used, so it is useful to mark
@@ -50,18 +52,18 @@ namespace wallet
           INSERT INTO metadata VALUES (0,0,0,0,0);
 
           CREATE TABLE key_images (
-            id INTEGER NOT NULL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             key_image BLOB NOT NULL,
             UNIQUE(key_image)
           );
 
           CREATE TABLE outputs (
-            id INTEGER NOT NULL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             amount INTEGER NOT NULL,
             output_index INTEGER NOT NULL,
             unlock_time INTEGER NOT NULL,
             block_height INTEGER NOT NULL REFERENCES blocks(height),
-            spending BOOLEAN NOT NULL,
+            spending BOOLEAN NOT NULL DEFAULT FALSE,
             spent_height INTEGER NOT NULL DEFAULT 0,
             tx INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
             output_key BLOB NOT NULL,
@@ -88,7 +90,7 @@ namespace wallet
           END;
 
           CREATE TABLE spends (
-            id INTEGER PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             key_image INTEGER NOT NULL REFERENCES key_images(id),
             height INTEGER REFERENCES blocks(height) ON DELETE CASCADE,
             tx INTEGER REFERENCES transactions(id),

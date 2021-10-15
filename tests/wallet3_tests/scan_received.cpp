@@ -18,7 +18,7 @@ TEST_CASE("Transaction Scanner", "[wallet]")
 
   auto keys = std::make_shared<wallet::MockKeyring>();
 
-  auto scanner = std::make_shared<wallet::TransactionScanner>(keys);
+  auto scanner = std::make_shared<wallet::TransactionScanner>(keys, nullptr);
 
   cryptonote::transaction tx;
 

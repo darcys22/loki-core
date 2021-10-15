@@ -20,3 +20,20 @@ target_link_libraries(wallet3_tests
 add_test(
   NAME    wallet3_tests
   COMMAND wallet3_tests)
+
+
+
+add_executable(jank_wallet_test
+  jank_wallet.cpp
+)
+
+target_link_libraries(jank_wallet_test
+  cryptonote_core
+  cryptonote_protocol
+  blockchain_db
+  version
+  filesystem
+  extra
+  wallet3
+  SQLiteCpp
+  ringct)

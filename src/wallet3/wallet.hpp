@@ -22,7 +22,6 @@ namespace wallet
    public:
     Wallet(
         std::shared_ptr<Keyring> _keys,
-        std::shared_ptr<TransactionScanner> _txScanner,
         std::shared_ptr<TransactionConstructor> _txConstructor,
         std::shared_ptr<DaemonComms> _daemonComms,
         std::string_view dbFilename,
@@ -50,7 +49,6 @@ namespace wallet
     void
     SubmitTransaction(const PendingTransaction& tx);
 
-   private:
     void
     AddBlock(
         const cryptonote::block& block,
@@ -58,11 +56,27 @@ namespace wallet
         const crypto::hash& block_hash,
         const uint64_t height);
 
-    std::shared_ptr<Keyring> keys;
-    std::shared_ptr<TransactionScanner> txScanner;
-    std::shared_ptr<TransactionConstructor> txConstructor;
+   private:
 
-    std::unique_ptr<db::Database> db;
+    void
+    StoreTransaction(
+        const cryptonote::transaction& tx,
+        const uint64_t height,
+        const std::vector<Output>& outputs);
+
+    void
+    StoreSpends(
+        const crypto::hash& tx_hash,
+        const uint64_t height,
+        const std::vector<crypto::key_image>& spends);
+
+    std::shared_ptr<db::Database> db;
+
+    std::shared_ptr<Keyring> keys;
+    TransactionScanner txScanner;
+    std::shared_ptr<TransactionConstructor> txConstructor;
+    std::shared_ptr<DaemonComms> daemonComms;
+
   };
 
 }  // namespace wallet

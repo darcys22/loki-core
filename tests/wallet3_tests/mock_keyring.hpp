@@ -1,3 +1,5 @@
+#pragma once
+
 #include <wallet3/keyring.hpp>
 
 namespace wallet

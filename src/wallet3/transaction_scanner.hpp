@@ -1,18 +1,23 @@
 #pragma once
 
 #include "output.hpp"
-
-#include <cryptonote_basic/cryptonote_basic.h>
 #include "keyring.hpp"
 
+#include <cryptonote_basic/cryptonote_basic.h>
+
 #include <vector>
+
+namespace db
+{
+  class Database;
+}
 
 namespace wallet
 {
   class TransactionScanner
   {
    public:
-    TransactionScanner(std::shared_ptr<Keyring> _keys) : wallet_keys(_keys)
+    TransactionScanner(std::shared_ptr<Keyring> _keys, std::shared_ptr<db::Database> _db) : wallet_keys(_keys), db(_db)
     {}
 
     std::vector<Output>
@@ -21,15 +26,13 @@ namespace wallet
         const crypto::hash& tx_hash,
         uint64_t height,
         uint64_t timestamp);
-    std::vector<Output>
-    ScanTransactionSpent(
-        const cryptonote::transaction& tx,
-        const crypto::hash& tx_hash,
-        uint64_t height,
-        uint64_t timestamp);
+
+    std::vector<crypto::key_image>
+    ScanTransactionSpent(const cryptonote::transaction& tx);
 
    private:
     std::shared_ptr<Keyring> wallet_keys;
+    std::shared_ptr<db::Database> db;
   };
 
 }  // namespace wallet
