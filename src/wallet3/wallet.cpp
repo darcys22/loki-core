@@ -28,6 +28,10 @@ namespace wallet
     create_schema(db->db);
   }
 
+  void Wallet::init()
+  {
+  }
+
   Wallet::~Wallet()
   {
   }

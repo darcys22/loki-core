@@ -17,15 +17,28 @@ namespace wallet
 {
   struct address;  // FIXME: placeholder type
 
-  class Wallet
+  class Wallet : public std::enable_shared_from_this<Wallet>
   {
-   public:
+    private:
+
     Wallet(
         std::shared_ptr<Keyring> _keys,
         std::shared_ptr<TransactionConstructor> _txConstructor,
         std::shared_ptr<DaemonComms> _daemonComms,
         std::string_view dbFilename,
         std::string_view dbPassword);
+
+    void init();
+
+   public:
+
+    template <typename... T>
+    [[nodiscard]] static std::shared_ptr<Wallet> MakeWallet(T&&... args)
+    {
+      std::shared_ptr<Wallet> p{new Wallet(std::forward<T>(args)...)};
+      p->init();
+      return p;
+    }
 
     ~Wallet();
 

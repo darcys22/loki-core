@@ -25,7 +25,7 @@ int main(void)
 
   auto keyring = std::make_shared<wallet::Keyring>(spend_priv, spend_pub, view_priv, view_pub);
 
-  wallet::Wallet wallet{keyring, ctor, nullptr, ":memory:", ""};
+  auto wallet = wallet::Wallet::MakeWallet(keyring, ctor, nullptr, ":memory:", "");
 
   std::cout << "starting parsing from height 664000\n";
   for (size_t i = 664000; i < db->height(); i++)
@@ -40,8 +40,8 @@ int main(void)
 
     std::cout << "calling wallet.AddBlock()\n";
 
-    wallet.AddBlock(b, txs, block_hash, i);
+    wallet->AddBlock(b, txs, block_hash, i);
 
-    std::cout << "after block " << i << ", balance is: " << wallet.GetBalance() << "\n";
+    std::cout << "after block " << i << ", balance is: " << wallet->GetBalance() << "\n";
   }
 }
