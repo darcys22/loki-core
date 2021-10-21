@@ -1,6 +1,9 @@
 #include <cryptonote_core/cryptonote_core.h>
 #include <wallet3/wallet.hpp>
 #include <wallet3/keyring.hpp>
+#include <wallet3/block.hpp>
+#include <wallet3/block_tx.hpp>
+#include <wallet3/wallet2½.hpp>
 #include <common/hex.h>
 
 int main(void)
@@ -30,17 +33,42 @@ int main(void)
   std::cout << "starting parsing from height 664000\n";
   for (size_t i = 664000; i < db->height(); i++)
   {
+    wallet::Block block;
+
+    block.height = i;
     auto b = db->get_block_from_height(i);
-    auto block_hash = db->get_block_hash_from_height(i);
-    std::vector<cryptonote::transaction> txs;
+    block.hash = db->get_block_hash_from_height(i);
+
+    {
+      wallet::BlockTX tx{};
+
+      tx.hash = wallet2½::tx_hash(b.miner_tx);
+      tx.tx = b.miner_tx;
+
+      //XXX: getting global output index out of the db would be a pain in this context,
+      //     and they shouldn't matter, so just make them all zero.
+      tx.global_indices.resize(tx.tx.vout.size(), 0);
+
+      block.transactions.push_back(tx);
+    }
+
     for (const auto& h : b.tx_hashes)
     {
-      txs.push_back(db->get_tx(h));
+      wallet::BlockTX tx{};
+
+      tx.hash = h;
+      tx.tx = db->get_tx(h);
+
+      //XXX: getting global output index out of the db would be a pain in this context,
+      //     and they shouldn't matter, so just make them all zero.
+      tx.global_indices.resize(tx.tx.vout.size(), 0);
+
+      block.transactions.push_back(tx);
     }
 
     std::cout << "calling wallet.AddBlock()\n";
 
-    wallet->AddBlock(b, txs, block_hash, i);
+    wallet->AddBlock(block);
 
     std::cout << "after block " << i << ", balance is: " << wallet->GetBalance() << "\n";
   }

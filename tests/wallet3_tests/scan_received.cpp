@@ -3,6 +3,8 @@
 #include <catch2/catch.hpp>
 
 #include <wallet3/transaction_scanner.hpp>
+#include <wallet3/block_tx.hpp>
+
 #include <crypto/crypto.h>
 #include <cryptonote_basic/cryptonote_basic.h>
 #include <cryptonote_basic/cryptonote_format_utils.h>
@@ -20,7 +22,9 @@ TEST_CASE("Transaction Scanner", "[wallet]")
 
   auto scanner = std::make_shared<wallet::TransactionScanner>(keys, nullptr);
 
-  cryptonote::transaction tx;
+  wallet::BlockTX block_tx;
+
+  cryptonote::transaction& tx{block_tx.tx};
 
   cryptonote::tx_out out1{0,cryptonote::txout_to_key{tx_pubkey1}};
 
@@ -28,30 +32,31 @@ TEST_CASE("Transaction Scanner", "[wallet]")
 
   SECTION("tx with no outputs created should yield no outputs for us")
   {
-    REQUIRE(scanner->ScanTransactionReceived(tx, tx.hash, 0, 0).size() == 0);
+    REQUIRE(scanner->ScanTransactionReceived(block_tx, 0, 0).size() == 0);
   }
 
   cryptonote::add_tx_extra<cryptonote::tx_extra_pub_key>(tx, tx_pubkey1);
 
   tx.vout.push_back(out1);
+  block_tx.global_indices.resize(1, 0);
 
   SECTION("tx has one output which is not ours")
   {
-    REQUIRE(scanner->ScanTransactionReceived(tx, tx.hash, 0, 0).size() == 0);
+    REQUIRE(scanner->ScanTransactionReceived(block_tx, 0, 0).size() == 0);
   }
 
   SECTION("tx has one output which is ours")
   {
     keys->add_key_index_pair_as_ours(tx_pubkey1, 0, 0, {0,0});
-    REQUIRE(scanner->ScanTransactionReceived(tx, tx.hash, 0, 0).size() == 1);
-    REQUIRE(scanner->ScanTransactionReceived(tx, tx.hash, 0, 0)[0].subaddress_index == cryptonote::subaddress_index{0,0});
+    REQUIRE(scanner->ScanTransactionReceived(block_tx, 0, 0).size() == 1);
+    REQUIRE(scanner->ScanTransactionReceived(block_tx, 0, 0)[0].subaddress_index == cryptonote::subaddress_index{0,0});
   }
 
   SECTION("subaddress_index is correct for identified output")
   {
     keys->add_key_index_pair_as_ours(tx_pubkey1, 0, 0, {1,0});
-    REQUIRE(scanner->ScanTransactionReceived(tx, tx.hash, 0, 0).size() == 1);
-    REQUIRE(scanner->ScanTransactionReceived(tx, tx.hash, 0, 0)[0].subaddress_index == cryptonote::subaddress_index{1,0});
+    REQUIRE(scanner->ScanTransactionReceived(block_tx, 0, 0).size() == 1);
+    REQUIRE(scanner->ScanTransactionReceived(block_tx, 0, 0)[0].subaddress_index == cryptonote::subaddress_index{1,0});
   }
 
   SECTION("multiple outputs for multiple subaddresses")
@@ -59,8 +64,9 @@ TEST_CASE("Transaction Scanner", "[wallet]")
     keys->add_key_index_pair_as_ours(tx_pubkey1, 0, 0, {0,0});
     keys->add_key_index_pair_as_ours(tx_pubkey1, 1, 0, {3,4});
     tx.vout.push_back(out1); // second copy of same dummy output
+    block_tx.global_indices.resize(2, 0);
 
-    auto outs = scanner->ScanTransactionReceived(tx, tx.hash, 0, 0);
+    auto outs = scanner->ScanTransactionReceived(block_tx, 0, 0);
     REQUIRE(outs.size() == 2);
     REQUIRE(outs[0].subaddress_index == cryptonote::subaddress_index{0,0});
     REQUIRE(outs[1].subaddress_index == cryptonote::subaddress_index{3,4});
@@ -70,8 +76,9 @@ TEST_CASE("Transaction Scanner", "[wallet]")
   {
     keys->add_key_index_pair_as_ours(tx_pubkey2, 1, 0, {0,0});
     tx.vout.push_back(out2); // diff output key, first not ours here, this one is
+    block_tx.global_indices.resize(2, 0);
 
-    auto outs = scanner->ScanTransactionReceived(tx, tx.hash, 0, 0);
+    auto outs = scanner->ScanTransactionReceived(block_tx, 0, 0);
     REQUIRE(outs.size() == 1);
     REQUIRE(outs[0].subaddress_index == cryptonote::subaddress_index{0,0});
   }
@@ -79,7 +86,7 @@ TEST_CASE("Transaction Scanner", "[wallet]")
   SECTION("correct output amount")
   {
     keys->add_key_index_pair_as_ours(tx_pubkey1, 0, 42, {0,0});
-    auto outs = scanner->ScanTransactionReceived(tx, tx.hash, 0, 0);
+    auto outs = scanner->ScanTransactionReceived(block_tx, 0, 0);
     REQUIRE(outs.size() == 1);
     REQUIRE(outs[0].amount == 42);
   }

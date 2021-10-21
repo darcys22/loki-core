@@ -13,6 +13,7 @@ namespace wallet
   {
     uint64_t amount;
     uint64_t output_index;
+    uint64_t global_index;
     uint64_t unlock_time;
     uint64_t block_height;
     uint64_t block_time;

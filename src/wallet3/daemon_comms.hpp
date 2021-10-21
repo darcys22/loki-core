@@ -11,6 +11,8 @@ namespace cryptonote
 
 namespace wallet
 {
+  class Wallet;
+
   // should capture weak pointer to objects in callbacks so those objects can
   // be deallocated even if there are outstanding requests
   class DaemonComms
@@ -31,7 +33,7 @@ namespace wallet
     }
 
     virtual void
-    SetNewBlockCallback(std::function<void(cryptonote::block)> cb) = 0;
+    RegisterWallet(wallet::Wallet& wallet) = 0;
 
     virtual void
     GetDecoyOutputs(/*TODO: args */ std::function<void(std::vector<Decoy>)> cb);

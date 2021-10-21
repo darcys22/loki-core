@@ -14,18 +14,17 @@ namespace db
 
 namespace wallet
 {
+  struct BlockTX;
+
   class TransactionScanner
   {
    public:
-    TransactionScanner(std::shared_ptr<Keyring> _keys, std::shared_ptr<db::Database> _db) : wallet_keys(_keys), db(_db)
+    TransactionScanner(std::shared_ptr<Keyring> _keys, std::shared_ptr<db::Database> _db)
+        : wallet_keys(_keys), db(_db)
     {}
 
     std::vector<Output>
-    ScanTransactionReceived(
-        const cryptonote::transaction& tx,
-        const crypto::hash& tx_hash,
-        uint64_t height,
-        uint64_t timestamp);
+    ScanTransactionReceived(const BlockTX& tx, uint64_t height, uint64_t timestamp);
 
     std::vector<crypto::key_image>
     ScanTransactionSpent(const cryptonote::transaction& tx);

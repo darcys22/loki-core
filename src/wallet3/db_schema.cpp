@@ -61,6 +61,7 @@ namespace wallet
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             amount INTEGER NOT NULL,
             output_index INTEGER NOT NULL,
+            global_index INTEGER NOT NULL,
             unlock_time INTEGER NOT NULL,
             block_height INTEGER NOT NULL REFERENCES blocks(height),
             spending BOOLEAN NOT NULL DEFAULT FALSE,

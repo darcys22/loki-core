@@ -15,12 +15,11 @@ namespace db
 
 namespace wallet
 {
-  struct address;  // FIXME: placeholder type
+  struct Block;
 
   class Wallet : public std::enable_shared_from_this<Wallet>
   {
-    private:
-
+   private:
     Wallet(
         std::shared_ptr<Keyring> _keys,
         std::shared_ptr<TransactionConstructor> _txConstructor,
@@ -28,12 +27,13 @@ namespace wallet
         std::string_view dbFilename,
         std::string_view dbPassword);
 
-    void init();
+    void
+    init();
 
    public:
-
     template <typename... T>
-    [[nodiscard]] static std::shared_ptr<Wallet> MakeWallet(T&&... args)
+    [[nodiscard]] static std::shared_ptr<Wallet>
+    MakeWallet(T&&... args)
     {
       std::shared_ptr<Wallet> p{new Wallet(std::forward<T>(args)...)};
       p->init();
@@ -63,19 +63,12 @@ namespace wallet
     SubmitTransaction(const PendingTransaction& tx);
 
     void
-    AddBlock(
-        const cryptonote::block& block,
-        const std::vector<cryptonote::transaction>& transactions,
-        const crypto::hash& block_hash,
-        const uint64_t height);
+    AddBlock(const Block& block);
 
    private:
-
     void
     StoreTransaction(
-        const cryptonote::transaction& tx,
-        const uint64_t height,
-        const std::vector<Output>& outputs);
+        const crypto::hash& tx_hash, const uint64_t height, const std::vector<Output>& outputs);
 
     void
     StoreSpends(
@@ -89,7 +82,6 @@ namespace wallet
     TransactionScanner txScanner;
     std::shared_ptr<TransactionConstructor> txConstructor;
     std::shared_ptr<DaemonComms> daemonComms;
-
   };
 
 }  // namespace wallet
