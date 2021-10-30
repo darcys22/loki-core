@@ -4,17 +4,11 @@
 
 #include <functional>
 
-namespace cryptonote
-{
-  class block;
-}
-
 namespace wallet
 {
   class Wallet;
+  class Block;
 
-  // should capture weak pointer to objects in callbacks so those objects can
-  // be deallocated even if there are outstanding requests
   class DaemonComms
   {
    public:
@@ -23,23 +17,10 @@ namespace wallet
 
     virtual void
     GetBlocks(
-        uint64_t start_height,
-        uint64_t end_height,
-        std::function<void(std::vector<cryptonote::block>)> cb) = 0;
-    void
-    GetBlock(uint64_t height, std::function<void(std::vector<cryptonote::block>)> cb)
-    {
-      GetBlocks(height, height, cb);
-    }
+        uint64_t start_height, uint64_t end_height, std::function<void(std::vector<Block>)> cb) = 0;
 
     virtual void
-    RegisterWallet(wallet::Wallet& wallet) = 0;
-
-    virtual void
-    GetDecoyOutputs(/*TODO: args */ std::function<void(std::vector<Decoy>)> cb);
-
-    virtual void
-    SubmitTransaction(PendingTransaction tx, std::function<void(bool success)> cb) = 0;
+    RegisterWallet(Wallet& wallet) = 0;
   };
 
 }  // namespace wallet

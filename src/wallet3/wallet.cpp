@@ -20,11 +20,11 @@ namespace wallet
       std::shared_ptr<DaemonComms> _daemonComms,
       std::string_view dbFilename,
       std::string_view dbPassword)
-      : db(std::make_shared<db::Database>(std::filesystem::path(dbFilename), dbPassword))
-      , keys(_keys)
-      , txScanner(keys, db)
-      , txConstructor(_txConstructor)
-      , daemonComms(_daemonComms)
+      : db{std::make_shared<db::Database>(std::filesystem::path(dbFilename), dbPassword)}
+      , keys{_keys}
+      , txScanner{keys, db}
+      , txConstructor{_txConstructor}
+      , daemonComms{_daemonComms}
   {
     create_schema(db->db);
   }
