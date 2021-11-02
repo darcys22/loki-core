@@ -295,6 +295,10 @@ namespace cryptonote::rpc {
       throw std::runtime_error{"Error: at most one of 'height'" + std::to_string(hfinfo.request.height) + "/" + std::to_string(hfinfo.request.version) + " and 'version' may be specified"};
   }
 
+  void parse_request(GET_CHAIN_BLOCKS& get, rpc_input in) {
+    get_values(in, "end_height", get.request.end_height, "start_height", get.request.start_height);
+  }
+
   void parse_request(GET_TRANSACTIONS& get, rpc_input in) {
     // Backwards compat for old stupid "txs_hashes" input name
     if (auto* json_in = std::get_if<json>(&in))

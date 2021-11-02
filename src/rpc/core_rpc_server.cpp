@@ -926,6 +926,91 @@ namespace cryptonote::rpc {
     return core.get_pool().get_spent_key_images(true);
   }
 
+  void core_rpc_server::invoke(GET_CHAIN_BLOCKS& get, rpc_context context)
+  {
+    auto& blocks_out = get.response["blocks"];
+    blocks_out = json::array();
+
+    auto chain_height = m_core.get_current_blockchain_height();
+    if (get.request.start_height > chain_height)
+    {
+      get.response["status"] = STATUS_OK;
+      return;
+    }
+
+    auto end = std::min(get.request.end_height, chain_height);
+    for (uint64_t i = get.request.start_height; i <= end; i++)
+    {
+      auto hash = m_core.get_block_id_by_height(i);
+      block b;
+      if (!m_core.get_block_by_height(i, b))
+      {
+        get.response["status"] = STATUS_FAILED;
+        blocks_out.clear();
+        return;
+      }
+
+      auto& block_out = blocks_out.emplace_back();
+      auto block_out_bin = get.response_hex["blocks"].back();
+
+      block_out["height"] = i;
+      block_out["timestamp"] = b.timestamp;
+      block_out_bin["hash"] = hash;
+
+      std::vector<cryptonote::blobdata> txs;
+      m_core.get_transactions(b.tx_hashes, txs);
+      if (txs.size() != b.tx_hashes.size())
+      {
+        get.response["status"] = STATUS_FAILED;
+        blocks_out.clear();
+        return;
+      }
+
+      block_out["transactions"] = json::array();
+
+      std::vector<uint64_t> indices;
+
+      {
+        auto& tx_out = block_out["transactions"].emplace_back();
+        json_binary_proxy tx_out_bin{tx_out, json_binary_proxy::fmt::hex};
+
+        crypto::hash miner_tx_hash;
+        cryptonote::get_transaction_hash(b.miner_tx, miner_tx_hash, nullptr);
+
+        tx_out_bin["hash"] = miner_tx_hash;
+        tx_out_bin["tx"] = tx_to_blob(b.miner_tx);
+
+        if (not m_core.get_tx_outputs_gindexs(miner_tx_hash, indices))
+        {
+          get.response["status"] = STATUS_FAILED;
+          blocks_out.clear();
+          return;
+        }
+        tx_out["global_indices"] = indices;
+      }
+
+      for (size_t tx_index = 0; tx_index < txs.size(); tx_index++)
+      {
+        indices.clear();
+        auto& tx_out = block_out["transactions"].emplace_back();
+        json_binary_proxy tx_out_bin{tx_out, json_binary_proxy::fmt::hex};
+        tx_out_bin["hash"] = b.tx_hashes[tx_index];
+        tx_out_bin["tx"] = txs[tx_index];
+
+        if (not m_core.get_tx_outputs_gindexs(b.tx_hashes[tx_index], indices))
+        {
+          get.response["status"] = STATUS_FAILED;
+          blocks_out.clear();
+          return;
+        }
+
+        tx_out["global_indices"] = indices;
+      }
+    }
+
+    get.response["status"] = STATUS_OK;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------------
   void core_rpc_server::invoke(GET_TRANSACTIONS& get, rpc_context context)
   {

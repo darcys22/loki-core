@@ -220,6 +220,37 @@ namespace cryptonote::rpc {
     static constexpr auto names() { return NAMES("get_height", "getheight"); }
   };
 
+  /// Get a set of blocks, their transactions, and their created outputs' global indices
+  ///
+  /// Inputs:
+  ///
+  /// - \p start_height -- height of first requested block.  Requesting past the end of the chain is valid;
+  ///   The resulting block list will be empty if this happens.
+  /// - \p end_height -- height of last requested block.  Requesting past the end of the chain is valid;
+  ///   The resulting block list may be smaller than the height range requested as a result.
+  ///
+  /// Outputs
+  ///
+  /// - \p status -- General RPC status string. `"OK"` means everything looks good.
+  /// - \p blocks -- list of the requested blocks, each a dict as follows:
+  ///   - \p height -- the block height
+  ///   - \p hash -- the block hash
+  ///   - \p timestamp -- the block timestamp
+  ///   - \p transactions -- list of the block's transactions (including miner tx), each a dict as follows:
+  ///     - \p hash -- the transaction hash
+  ///     - \p global_indices -- list of output indices for the transaction's created outputs
+  ///     - \p tx -- base64 string of raw transaction data \todo properly serialized transaction
+  struct GET_CHAIN_BLOCKS : PUBLIC
+  {
+    static constexpr auto names() { return NAMES("get_chain_blocks"); }
+
+    struct request_parameters
+    {
+      uint64_t start_height;
+      uint64_t end_height;
+    } request;
+  };
+
   /// Look up one or more transactions by hash.
   ///
   /// Outputs:
@@ -516,19 +547,6 @@ namespace cryptonote::rpc {
       std::string tx;
       bool blink = false;
     } request;
-
-//    struct response
-//    {
-//      std::string status; // General RPC error code. "OK" means everything looks good. Any other value means that something went wrong.
-//      std::string reason; // Additional information. Currently empty, "Not relayed" if transaction was accepted but not relayed, or some descriptive message of why the tx failed.
-//      bool not_relayed;   // Transaction was not relayed (true) or relayed (false).
-//      bool untrusted;     // States if the result is obtained using the bootstrap mode, and is therefore not trusted (`true`), or when the daemon is fully synced (`false`).
-//      tx_verification_context tvc;
-//      bool sanity_check_failed;
-//      blink_result blink_status; // 0 for a non-blink tx.  For a blink tx: 1 means rejected, 2 means accepted, 3 means timeout.
-//
-//      KV_MAP_SERIALIZABLE
-//    };
   };
 
   //-----------------------------------------------
@@ -2446,6 +2464,7 @@ namespace cryptonote::rpc {
     MINING_STATUS,
     GET_TRANSACTION_POOL_HASHES,
     GET_TRANSACTION_POOL_STATS,
+    GET_CHAIN_BLOCKS,
     GET_TRANSACTIONS,
     IS_KEY_IMAGE_SPENT,
     GET_SERVICE_NODES,
