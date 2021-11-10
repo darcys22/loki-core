@@ -41,4 +41,12 @@ namespace wallet2½
     cryptonote::get_transaction_hash(tx, h, nullptr);
     return h;
   }
+
+  cryptonote::transaction
+  tx_from_blob(const std::string_view blob)
+  {
+    cryptonote::transaction t;
+    parse_and_validate_tx_from_blob(blob, t);
+    return t;
+  }
 }  // namespace wallet2½

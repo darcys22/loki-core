@@ -46,10 +46,12 @@ namespace wallet
             db_version INTEGER NOT NULL DEFAULT 0,
             balance INTEGER NOT NULL DEFAULT 0,
             unlocked_balance INTEGER NOT NULL DEFAULT 0,
-            last_scan_height INTEGER NOT NULL DEFAULT 0
+            last_scan_height INTEGER NOT NULL DEFAULT -1,
+            scan_target_hash TEXT NOT NULL,
+            scan_target_height INTEGER NOT NULL DEFAULT 0
           );
           -- insert metadata row as default
-          INSERT INTO metadata VALUES (0,0,0,0,0);
+          INSERT INTO metadata VALUES (0,0,0,0,-1,"",0);
 
           CREATE TABLE key_images (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

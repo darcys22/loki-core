@@ -18,4 +18,7 @@ namespace wallet2½
   crypto::hash
   tx_hash(const cryptonote::transaction& tx);
 
+  cryptonote::transaction
+  tx_from_blob(const std::string_view blob);
+
 }  // namespace wallet2½

@@ -972,7 +972,7 @@ namespace cryptonote::rpc {
 
       {
         auto& tx_out = block_out["transactions"].emplace_back();
-        json_binary_proxy tx_out_bin{tx_out, json_binary_proxy::fmt::hex};
+        auto tx_out_bin = block_out_bin["transactions"].back();
 
         crypto::hash miner_tx_hash;
         cryptonote::get_transaction_hash(b.miner_tx, miner_tx_hash, nullptr);
@@ -993,7 +993,7 @@ namespace cryptonote::rpc {
       {
         indices.clear();
         auto& tx_out = block_out["transactions"].emplace_back();
-        json_binary_proxy tx_out_bin{tx_out, json_binary_proxy::fmt::hex};
+        auto tx_out_bin = block_out_bin["transactions"].back();
         tx_out_bin["hash"] = b.tx_hashes[tx_index];
         tx_out_bin["tx"] = txs[tx_index];
 

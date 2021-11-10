@@ -1,18 +1,21 @@
 #include <cryptonote_core/cryptonote_core.h>
 #include <wallet3/wallet.hpp>
+#include <wallet3/default_daemon_comms.hpp>
 #include <wallet3/keyring.hpp>
 #include <wallet3/block.hpp>
 #include <wallet3/block_tx.hpp>
 #include <wallet3/wallet2½.hpp>
 #include <common/hex.h>
+#include <oxenmq/oxenmq.h>
+
+#include <atomic>
+#include <thread>
+#include <future>
 
 int main(void)
 {
-
-  cryptonote::BlockchainDB *db = cryptonote::new_db();
-
-  db->open("./lmdb", cryptonote::TESTNET, DBF_RDONLY);
-  std::cout << "opened db, height: " << db->height() << "\n";
+  auto oxenmq = std::make_shared<oxenmq::OxenMQ>();
+  oxenmq->start();
 
   auto ctor = std::make_shared<wallet::TransactionConstructor>();
 
@@ -28,48 +31,22 @@ int main(void)
 
   auto keyring = std::make_shared<wallet::Keyring>(spend_priv, spend_pub, view_priv, view_pub);
 
-  auto wallet = wallet::Wallet::MakeWallet(keyring, ctor, nullptr, ":memory:", "");
+  auto comms = std::make_shared<wallet::DefaultDaemonComms>(oxenmq);
+  comms->SetRemote("ipc://./oxend.sock");
 
-  std::cout << "starting parsing from height 664000\n";
-  for (size_t i = 664000; i < db->height(); i++)
+  auto wallet = wallet::Wallet::MakeWallet(oxenmq, keyring, ctor, comms, ":memory:", "");
+
+  std::this_thread::sleep_for(2s);
+  auto chain_height = comms->GetHeight();
+
+  std::cout << "chain height: " << chain_height << "\n";
+
+  while (true)
   {
-    wallet::Block block;
+    using namespace std::chrono_literals;
 
-    block.height = i;
-    auto b = db->get_block_from_height(i);
-    block.hash = db->get_block_hash_from_height(i);
-
-    {
-      wallet::BlockTX tx{};
-
-      tx.hash = wallet2½::tx_hash(b.miner_tx);
-      tx.tx = b.miner_tx;
-
-      //XXX: getting global output index out of the db would be a pain in this context,
-      //     and they shouldn't matter, so just make them all zero.
-      tx.global_indices.resize(tx.tx.vout.size(), 0);
-
-      block.transactions.push_back(tx);
-    }
-
-    for (const auto& h : b.tx_hashes)
-    {
-      wallet::BlockTX tx{};
-
-      tx.hash = h;
-      tx.tx = db->get_tx(h);
-
-      //XXX: getting global output index out of the db would be a pain in this context,
-      //     and they shouldn't matter, so just make them all zero.
-      tx.global_indices.resize(tx.tx.vout.size(), 0);
-
-      block.transactions.push_back(tx);
-    }
-
-    std::cout << "calling wallet.AddBlock()\n";
-
-    wallet->AddBlock(block);
-
-    std::cout << "after block " << i << ", balance is: " << wallet->GetBalance() << "\n";
+    std::this_thread::sleep_for(5s);
+    std::cout << "after block " << wallet->ScannedHeight() << ", balance is: " << wallet->GetBalance() << "\n";
+    std::cout << "scan target height: " << wallet->ScanTargetHeight() << "\n";
   }
 }
