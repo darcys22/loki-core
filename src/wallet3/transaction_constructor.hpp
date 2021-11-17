@@ -2,17 +2,32 @@
 
 #include <cstdint>
 #include <vector>
+#include <memory>
 #include "address.hpp"
+#include "pending_transaction.hpp"
+#include "daemon_comms.hpp"
+
+namespace db
+{
+  class Database;
+}
 
 namespace wallet
 {
-  struct PendingTransaction;
-
   class TransactionConstructor
   {
-    virtual PendingTransaction
+    PendingTransaction
     CreateTransaction(
-        const std::vector<std::pair<address, uint64_t>>& recipients, uint64_t feePerKB) const;
+        const std::vector<TransactionRecipient>& recipients, int64_t feePerKB) const;
+    
+    private:
+
+    void SelectInputs(PendingTransaction& ptx) const;
+    void SelectInputsAndFinalise(PendingTransaction& ptx) const;
+    int64_t EstimateFee() const;
+
+    std::shared_ptr<db::Database> db;
+    std::shared_ptr<DaemonComms> daemon;
   };
 
 }  // namespace wallet
