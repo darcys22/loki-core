@@ -128,11 +128,13 @@ namespace wallet
     auto hash_str = tools::type_to_hex(tx_hash);
     db->prepared_exec(
         "INSERT INTO transactions(block,hash) VALUES(?,?)", static_cast<int64_t>(height), hash_str);
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - " << "AAAAAAAAAA" << " - debug" << std::endl;
 
     for (const auto& output : outputs)
     {
       db->prepared_exec(
           "INSERT INTO key_images(key_image) VALUES(?)", tools::type_to_hex(output.key_image));
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - " << "AAAAAAAAAA" << " - debug" << std::endl;
       db->prepared_exec(
           R"(
           INSERT INTO outputs(
@@ -164,6 +166,7 @@ namespace wallet
           tools::type_to_hex(output.key_image),
           output.subaddress_index.major,
           output.subaddress_index.minor);
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - " << "AAAAAAAAAA" << " - debug" << std::endl;
     }
   }
 
