@@ -1,16 +1,37 @@
+#include <filesystem>
 #include <catch2/catch.hpp>
 
 #include <wallet3/wallet.hpp>
+#include <wallet3/db_schema.hpp>
+#include <wallet3/default_daemon_comms.hpp>
 
-TEST_CASE("DB Schema", "[wallet,tx]")
+#include <sqlitedb/database.hpp>
+
+
+TEST_CASE("Transaction Creation", "[wallet,tx]")
 {
 
-  auto keyring = std::make_shared<wallet::Keyring>(spend_priv, spend_pub, view_priv, view_pub);
+  std::vector<wallet::TransactionRecipient> recipients;
+  recipients.emplace_back(wallet::address{},10);
 
-  auto ctor = std::make_shared<wallet::TransactionConstructor>();
+  auto oxenmq = std::make_shared<oxenmq::OxenMQ>();
+  oxenmq->start();
 
-  SECTION("Creates a successful single transactions")
+  auto comms = std::make_shared<wallet::DefaultDaemonComms>(oxenmq);
+  comms->SetRemote("ipc://./oxend.sock");
+
+  auto db = std::make_shared<db::Database>(std::filesystem::path(":memory:"), "");
+  wallet::create_schema(db->db);
+
+  auto ctor = wallet::TransactionConstructor(db, comms);
+  SECTION("Expect Fail if database is empty")
   {
-    REQUIRE_NOTHROW(ctor.CreateTransaction());
+    REQUIRE_THROWS(ctor.CreateTransaction(recipients, 10));
+  }
+
+  SECTION("Creates a successful single transaction")
+  {
+    wallet::PendingTransaction ptx = ctor.CreateTransaction(recipients, 10);
+    REQUIRE(ptx.recipients.size() == 1);
   }
 }

@@ -3,42 +3,52 @@
 
 namespace wallet
 {
-  PendingTransaction(const std::vector<TransactionRecipient>& recipients)
+  PendingTransaction::PendingTransaction(const std::vector<TransactionRecipient>& new_recipients): recipients(new_recipients)
   {
-    int64_t sum_recipient_amounts;
-    for (const CRecipient& recipient : recipients)
+    //TODO sean address of change needs to be creator
+    change = TransactionRecipient{{},0};
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this pending transaction new- " << " - debug" << std::endl;
+    int64_t sum_recipient_amounts = 0;
+    for (const auto& recipient : new_recipients)
     {
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this recipients - " << " - debug" << std::endl;
       if (sum_recipient_amounts < 0 || recipient.amount < 0)
         throw std::runtime_error("Transaction amounts must be positive");
-      sum_recipient_amounts += recipient.Amount;
+      sum_recipient_amounts += recipient.amount;
     }
-    if (recipients.empty() || nValue < 0)
+    if (new_recipients.empty() || sum_recipient_amounts < 0)
       throw std::runtime_error("Transaction amounts must be positive");
   }
 
-  int64_t UpdateChange()
+  void PendingTransaction::UpdateChange()
   {
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this update change - " << " - debug" << std::endl;
     change.amount = SumInputs() - SumOutputs();
   }
 
-  int64_t SumInputs()
+  int64_t PendingTransaction::SumInputs()
   {
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this sum inputs - " << " - debug" << std::endl;
     return std::accumulate(chosenOutputs.begin(), chosenOutputs.end(), 0,
-        [](int64_t accumulator, const Output& output {
+        [](int64_t accumulator, const Output& output) {
           return accumulator + output.amount;
-        }));
+        });
   }
 
-  int64_t SumOutputs()
+  int64_t PendingTransaction::SumOutputs()
   {
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this sum outputs - " << " - debug" << std::endl;
     return std::accumulate(recipients.begin(), recipients.end(), 0,
-        [](int64_t accumulator, const TransactionRecipient& recipient {
+        [](int64_t accumulator, const TransactionRecipient& recipient) {
           return accumulator + recipient.amount;
-        }));
+        });
   }
 
-  bool Finalise()
+  bool PendingTransaction::Finalise()
   {
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this finalise - " << " - debug" << std::endl;
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this SumInputs- " << SumInputs() << " - debug" << std::endl;
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this SumOutputs- " << SumOutputs() << " - debug" << std::endl;
     if (SumInputs() - SumOutputs() - change.amount == 0)
       return true;
     else

@@ -8,6 +8,7 @@ namespace wallet
   TransactionConstructor::CreateTransaction(const std::vector<TransactionRecipient>& recipients, int64_t feePerKB) const
   {
     PendingTransaction txNew(recipients);
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - " << "AAAAAAAAAA" << " - debug" << std::endl;
     SelectInputsAndFinalise(txNew);
     return txNew;
   }
@@ -17,6 +18,7 @@ namespace wallet
   void
   TransactionConstructor::SelectInputs(PendingTransaction& ptx) const
   {
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - " << "AAAAAAAAAA" << " - debug" << std::endl;
     // Fail early
     int64_t estimated_fee = EstimateFee();
     //int64_t estimated_fee = estimate_fee(2, fake_outs_count, min_outputs, extra.size(), clsag, base_fee, fee_percent, fixed_fee,     fee_quantization_mask);
@@ -39,15 +41,16 @@ namespace wallet
     single_output.bind(1, shortfall);
     while (single_output.executeStep())
     {
-      ptx.chosenOutputs.emplace_back(
-          single_output.getColumn(1).getInt64(),
-          single_output.getColumn(2).getInt64(),
-          single_output.getColumn(3).getInt64(),
-          single_output.getColumn(4).getInt64(),
-          single_output.getColumn(5).getInt64(),
-          single_output.getColumn(6),
-          single_output.getColumn(7).getInt64());
-      ptx.UpdateChange();
+      std::cout << single_output.getColumn(1).getInt64() << std::endl;
+      //ptx.chosenOutputs.emplace_back(
+          //single_output.getColumn(1).getInt64(),
+          //single_output.getColumn(2).getInt64(),
+          //single_output.getColumn(3).getInt64(),
+          //single_output.getColumn(4).getInt64(),
+          //single_output.getColumn(5).getInt64(),
+          //single_output.getColumn(6),
+          //single_output.getColumn(7).getInt64());
+      //ptx.UpdateChange();
       return;
     }
 
@@ -56,15 +59,21 @@ namespace wallet
     SQLite::Statement many_outputs{db->db, "SELECT * FROM outputs ORDER BY amount"};
     while (shortfall > 0 && many_outputs.executeStep())
     {
-      ptx.chosenOutputs.emplace_back(
-          many_outputs.getColumn(1).getInt64(),
-          many_outputs.getColumn(2).getInt64(),
-          many_outputs.getColumn(3).getInt64(),
-          many_outputs.getColumn(4).getInt64(),
-          many_outputs.getColumn(5).getInt64(),
-          many_outputs.getColumn(6),
-          many_outputs.getColumn(7).getInt64());
-      //shortfall -= output_amount;
+      if (many_outputs.executeStep()) {
+        int64_t output_amount = many_outputs.getColumn(1).getInt64();
+        std::cout << output_amount << std::endl;
+        //ptx.chosenOutputs.emplace_back(
+            //many_outputs.getColumn(1).getInt64(),
+            //many_outputs.getColumn(2).getInt64(),
+            //many_outputs.getColumn(3).getInt64(),
+            //many_outputs.getColumn(4).getInt64(),
+            //many_outputs.getColumn(5).getInt64(),
+            //many_outputs.getColumn(6),
+            //many_outputs.getColumn(7).getInt64());
+        shortfall -= output_amount;
+      } else {
+        throw std::runtime_error("Insufficient Wallet Balance");
+      }
     }
     ptx.UpdateChange();
 

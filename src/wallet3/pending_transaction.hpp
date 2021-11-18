@@ -16,6 +16,9 @@ namespace wallet
   {
       address recipient_address;
       int64_t amount;
+
+      TransactionRecipient() = default;
+      TransactionRecipient(address addr, int64_t amt): recipient_address(addr), amount(amt){};
   };
 
   struct PendingTransaction
@@ -34,9 +37,9 @@ namespace wallet
 
     PendingTransaction() = default;
 
-    PendingTransaction(const std::vector<TransactionRecipient>& recipients);
+    PendingTransaction(const std::vector<TransactionRecipient>& new_recipients);
 
-    int64_t UpdateChange();
+    void UpdateChange();
 
     int64_t SumInputs();
 

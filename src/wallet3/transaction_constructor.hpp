@@ -16,6 +16,10 @@ namespace wallet
 {
   class TransactionConstructor
   {
+    public: 
+
+    TransactionConstructor(std::shared_ptr<db::Database> database, std::shared_ptr<DaemonComms> dmn ): db(std::move(database)), daemon(std::move(dmn)) {};
+
     PendingTransaction
     CreateTransaction(
         const std::vector<TransactionRecipient>& recipients, int64_t feePerKB) const;
