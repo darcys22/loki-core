@@ -10150,6 +10150,57 @@ void simple_wallet::commit_or_save(std::vector<tools::wallet2::pending_tx>& ptx_
     {
       cryptonote::blobdata blob;
       tx_to_blob(ptx.tx, blob);
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - transaction hash: " << cryptonote::obj_to_json_str(ptx.tx.hash) << "\n";
+      for (size_t n = 0; n < ptx.tx.vin.size(); ++n)
+      {
+        std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - VIN number: " << n << "\n";
+        std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - VIN: " << cryptonote::obj_to_json_str(ptx.tx.vin[n]) << "\n";
+      }
+      for (size_t n = 0; n < ptx.tx.vout.size(); ++n)
+      {
+        std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - VOUT number: " << n << "\n";
+        std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - VOUT: " << cryptonote::obj_to_json_str(ptx.tx.vout[n]) << "\n";
+      }
+      for (size_t n = 0; n < ptx.tx.signatures.size(); ++n)
+      {
+        std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - signature number: " << n << "\n";
+        std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - signature: " << cryptonote::obj_to_json_str(ptx.tx.signatures[n]) << "\n";
+      }
+      //std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature type: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.type) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature key: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.message) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature mixring: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.mixRing) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature pseudoOuts: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.pseudoOuts) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature ecdhInfo: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.ecdhInfo) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature outPk: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.outPk) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature xmr_amount fee: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.txnFee) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature rct prunable rangeSigs: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.p.rangeSigs) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature rct prunable bulletproofs: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.p.bulletproofs) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature rct prunable mgsig: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.p.MGs) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature rct prunable clsag: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.p.CLSAGs) << "\n";
+      std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - rct_signature rct prunable pseudoOuts: " << cryptonote::obj_to_json_str(ptx.tx.rct_signatures.p.pseudoOuts) << "\n";
+
+//std::vector<txin_v> vin;
+//std::vector<tx_out> vout;
+//std::vector<std::vector<crypto::signature>> signatures; //count signatures  always the same as inputs count
+//rct::rctSig rct_signatures;
+//mutable crypto::hash hash;
+//
+//struct rctSigBase {
+  //RCTType type;
+  //key message;
+  //ctkeyM mixRing; //the set of all pubkeys / copy
+  ////pairs that you mix with
+  //keyV pseudoOuts; //C - for simple rct
+  //std::vector<ecdhTuple> ecdhInfo;
+  //ctkeyV outPk;
+  //xmr_amount txnFee; // contains b
+  //rctSigPrunable p;
+    //std::vector<rangeSig> rangeSigs;
+    //std::vector<Bulletproof> bulletproofs;
+    //std::vector<mgSig> MGs; // simple rct has N, full has 1
+    //std::vector<clsag> CLSAGs;
+    //keyV pseudoOuts; //C - for simple rct
+
       const std::string blob_hex = oxenmq::to_hex(blob);
       fs::path filename = fs::u8path("raw_oxen_tx");
       if (ptx_vector.size() > 1) filename += "_" + std::to_string(i++);

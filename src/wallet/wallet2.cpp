@@ -7062,6 +7062,36 @@ std::string wallet2::dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) c
     return std::string();
   }
   LOG_PRINT_L2("Saving unsigned tx data: " << oss.str());
+
+  //TODO sean remove this
+  for (size_t n = 0; n < txs.txes[0].sources[0].outputs.size(); ++n)
+  {
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - outputs number: " << n << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - outputs index: " << cryptonote::obj_to_json_str(txs.txes[0].sources[0].outputs[n].first) << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - outputs public key: " << cryptonote::obj_to_json_str(txs.txes[0].sources[0].outputs[n].second) << "\n";
+  }
+  std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - real output: " << cryptonote::obj_to_json_str(txs.txes[0].sources[0].real_output) << "\n";
+  std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - real_out_tx_key: " << cryptonote::obj_to_json_str(txs.txes[0].sources[0].real_out_tx_key) << "\n";
+  std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - output amount: " << cryptonote::obj_to_json_str(txs.txes[0].sources[0].amount) << "\n";
+  std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - mask: " << cryptonote::obj_to_json_str(txs.txes[0].sources[0].mask) << "\n";
+  std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - splitted_dsts 1: " << cryptonote::obj_to_json_str(txs.txes[0].splitted_dsts[0]) << "\n";
+  std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - splitted_dsts 2: " << cryptonote::obj_to_json_str(txs.txes[0].splitted_dsts[1]) << "\n";
+  std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - selected_transfers: " << cryptonote::obj_to_json_str(txs.txes[0].selected_transfers) << "\n";
+  std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - selected_transfers: " << cryptonote::obj_to_json_str(txs.txes[0].dests[0]) << "\n";
+
+  for (size_t n = 0; n < txs.transfers.second.size(); ++n)
+  {
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - transfers number: " << n << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - block height: " << cryptonote::obj_to_json_str(txs.transfers.second[n].m_block_height) << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - transaction prefix: " << cryptonote::obj_to_json_str(txs.transfers.second[n].m_tx) << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - txid: " << cryptonote::obj_to_json_str(txs.transfers.second[n].m_txid) << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - internal output index: " << cryptonote::obj_to_json_str(txs.transfers.second[n].m_internal_output_index) << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - global output index: " << cryptonote::obj_to_json_str(txs.transfers.second[n].m_global_output_index) << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - key image: " << cryptonote::obj_to_json_str(txs.transfers.second[n].m_key_image) << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - mask: " << cryptonote::obj_to_json_str(txs.transfers.second[n].m_mask) << "\n";
+    std::cout << __FILE__ << ":" << __LINE__ << " (" << __func__ << ") TODO sean remove this - amount: " << cryptonote::obj_to_json_str(txs.transfers.second[n].m_amount) << "\n";
+  }
+
   std::string ciphertext = encrypt_with_view_secret_key(oss.str());
   return std::string(UNSIGNED_TX_PREFIX) + ciphertext;
 }
