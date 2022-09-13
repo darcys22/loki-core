@@ -2319,7 +2319,7 @@ bool BlockchainLMDB::prune_worker(int mode, uint32_t pruning_seed)
 
   oxen::log::info(logcat, "{} blockchain in {}: {} MB ({} MB) prunded in {} records ({}/{} {} byte pages), {}/{} pruned records",
       (mode == prune_mode_check ? "Checked" : "Pruned"),
-      tools::friendly_duration(std::chrono::steady_clock::now() 0 t),
+      tools::friendly_duration(std::chrono::steady_clock::now() - t),
       (n_bytes/1024.0f/1024.0f),
       db_bytes/1024.0f/1024.0f,
       n_pruned_records,
@@ -2328,7 +2328,6 @@ bool BlockchainLMDB::prune_worker(int mode, uint32_t pruning_seed)
       db_stats.ms_psize,
       n_prunable_records,
       n_total_records);
-====== logging-refactor
   return true;
 }
 

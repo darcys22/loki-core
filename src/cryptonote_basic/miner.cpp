@@ -294,7 +294,6 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------------
   bool miner::worker_thread(uint32_t index, bool slow_mining)
   {
-    MLOG_SET_THREAD_NAME(std::string("[miner ") + std::to_string(index) + "]");
     oxen::log::info(logcat, "Miner thread was started [{}]", index);
     uint32_t nonce = m_starter_nonce + index;
     uint64_t height = 0;

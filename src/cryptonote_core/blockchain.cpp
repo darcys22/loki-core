@@ -35,6 +35,8 @@
 #include <oxenc/endian.h>
 #include <sodium.h>
 #include <fmt/core.h>
+#include <fmt/color.h>
+#include <fmt/std.h>
 
 #include "common/rules.h"
 #include "common/hex.h"
@@ -67,8 +69,6 @@
 #include "common/meta.h"
 #include "common/sha256sum.h"
 #include "logging/oxen_logger.h"
-#include <fmt/std.h>
-#include <fmt/color.h>
 
 #ifdef ENABLE_SYSTEMD
 extern "C" {
@@ -1379,7 +1379,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     try {
       hook(hook_data);
     } catch (const std::exception& e) {
-      MGINFO_RED("Miner tx failed validation: " << e.what());
+      oxen::log::info(globallogcat, fmt::format(fg(fmt::terminal_color::red), "Miner tx failed validation: {}", e.what()));
       return false;
     }
   }
@@ -2094,7 +2094,7 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
       try {
         hook(hook_data);
       } catch (const std::exception& e) {
-        LOG_PRINT_L1("Failed to add alt block: " << e.what());
+        oxen::log::info(logcat, "Failed to add alt block: {}", e.what());
         return false;
       }
     }
@@ -3060,7 +3060,7 @@ void Blockchain::on_new_tx_from_block(const cryptonote::transaction &tx)
       size_t ring_size = 0;
       if (!tx.vin.empty() && std::holds_alternative<txin_to_key>(tx.vin[0]))
         ring_size = var::get<txin_to_key>(tx.vin[0]).key_offsets.size();
-      oxen::log::info(logcat, "HASH: - I/M/O: {}/{}/{} H: {} chcktx: {}", tx.vin.size(), ring_size, tx.vout.size(), 0, a);
+      oxen::log::info(logcat, "HASH: - I/M/O: {}/{}/{} H: {} chcktx: {}", tx.vin.size(), ring_size, tx.vout.size(), 0, tools::friendly_duration(std::chrono::steady_clock::now() - a));
     }
   }
 #endif
@@ -3096,7 +3096,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, uint64_t& max_used_block_heigh
     size_t ring_size = 0;
     if (!tx.vin.empty() && std::holds_alternative<txin_to_key>(tx.vin[0]))
       ring_size = var::get<txin_to_key>(tx.vin[0]).key_offsets.size();
-    oxen::log::info(logcat, "HASH: {} I/M/O: {}/{}/{} H: {} ms: {} B: {} W: {}", get_transaction_hash(tx), tx.vin.size(), ring_size, tx.vout.size(), max_used_block_height, a + m_fake_scan_time, get_object_blobsize(tx), get_transaction_weight(tx));
+    oxen::log::info(logcat, "HASH: {} I/M/O: {}/{}/{} H: {} ms: {} B: {} W: {}", get_transaction_hash(tx), tx.vin.size(), ring_size, tx.vout.size(), max_used_block_height, tools::friendly_duration(std::chrono::steady_clock::now() - a + m_fake_scan_time), get_object_blobsize(tx), get_transaction_weight(tx));
   }
   if (!res)
     return false;
@@ -4566,13 +4566,12 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
         print_money(fee_after_penalty),
         coinbase_weight,
         cumulative_block_weight,
-        block_processing_time
-        );
+        tools::friendly_duration(block_processing_time));
   }
   else
   {
     assert(bl.signatures.empty() && "Signatures were supposed to be checked in Service Node List already.");
-    oxen::log::info(logcat, "\n+++++ MINER BLOCK SUCCESSFULLY ADDED\n\n\tid:  {}\n\tPoW: {}\n\tHEIGHT: {}, v{}.{}, difficulty: {}\n\tblock reward: {}({} + {}), coinbase_weight: {}, cumulative weight: {}, {}({}/{})ms",
+    oxen::log::info(logcat, "\n+++++ MINER BLOCK SUCCESSFULLY ADDED\n\n\tid:  {}\n\tPoW: {}\n\tHEIGHT: {}, v{}.{}, difficulty: {}\n\tblock reward: {}({} + {}), coinbase_weight: {}, cumulative weight: {}, {}({})",
         id,
         miner.blk_pow.proof_of_work,
         new_height - 1,
@@ -4584,17 +4583,27 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
         print_money(fee_after_penalty),
         coinbase_weight,
         cumulative_block_weight,
-        block_processing_time,
-        miner.difficulty_calc_time,
-        miner.verify_pow_time
+        tools::friendly_duration(block_processing_time),
+        tools::friendly_duration(miner.verify_pow_time)
         );
   }
 
   if(m_show_time_stats)
   {
-    oxen::log::info(logcat, "Height: {} coinbase weight: {} cumm: {} p/t: {} ({}/{}/{}/{}/{}/{}/{}/{}/{})ms", new_height, coinbase_weight,
-        cumulative_block_weight, block_processing_time, miner.difficulty_calc_time, miner.verify_pow_time,
-        t1, t_exists, t_pool, t_checktx, t_dblspnd, vmt, addblock);
+    oxen::log::info(logcat, 
+        "Height: {} coinbase weight: {} cumm: {} p/t: {} ({}/{}/{}/{}/{}/{}/{}/{})",
+        new_height,
+        coinbase_weight,
+        cumulative_block_weight,
+        tools::friendly_duration(block_processing_time),
+        tools::friendly_duration(miner.verify_pow_time),
+        tools::friendly_duration(t1_elapsed),
+        tools::friendly_duration(t_exists),
+        tools::friendly_duration(t_pool),
+        tools::friendly_duration(t_checktx),
+        tools::friendly_duration(t_dblspnd),
+        tools::friendly_duration(vmt_elapsed),
+        tools::friendly_duration(addblock_elapsed));
   }
 
 
