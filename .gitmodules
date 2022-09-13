@@ -49,3 +49,6 @@
 [submodule "oxen-logging"]
 	path = oxen-logging
 	url = https://github.com/oxen-io/oxen-logging
+[submodule "external/oxen-mq"]
+	path = external/oxen-mq
+	url = https://github.com/oxen-io/oxen-mq.git
