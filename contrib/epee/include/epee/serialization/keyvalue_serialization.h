@@ -66,8 +66,8 @@ public: \
   bool Class::load(epee::serialization::portable_storage& st, epee::serialization::section* parent_section) \
   { \
     try { return _load(st, parent_section); } \
-    catch (const std::exception& err) { LOG_ERROR("Deserialization exception: " << err.what()); } \
-    catch (...) { LOG_ERROR("Unknown deserialization exception"); } \
+    catch (const std::exception& err) { std::cout << "Deserialization exception: " << err.what() << '\n'; } \
+    catch (...) { std::cout << "Unknown deserialization exception\n"; } \
     return false; \
   } \
   template <bool is_store> \
@@ -98,7 +98,7 @@ public: \
     catch(const std::exception& err) \
     { \
       (void)(err); \
-      LOG_ERROR("Exception on deserializing: " << err.what());\
+      std::cout << "Exception on deserializing: " << err.what() << '\n';\
       return false; \
     }\
   }\

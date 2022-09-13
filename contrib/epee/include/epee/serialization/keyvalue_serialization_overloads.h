@@ -34,6 +34,7 @@
 #include <deque>
 #include <array>
 #include <optional>
+#include <cstring>
 #include "../span.h"
 #include "../storages/portable_storage_base.h"
 
@@ -152,7 +153,7 @@ namespace epee
         return true;
       } catch (const std::out_of_range&) { // ignore silently
       } catch (const std::exception& e) {
-        LOG_ERROR("Failed to deserialize stl container: " << e.what());
+        std::cout << "Failed to deserialize stl container: " << e.what() << '\n';
       }
       return false;
     }

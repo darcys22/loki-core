@@ -37,9 +37,6 @@
 #include "daemon/command_parser_executor.h"
 #include "rpc/core_rpc_server_commands_defs.h"
 
-#undef OXEN_DEFAULT_LOG_CATEGORY
-#define OXEN_DEFAULT_LOG_CATEGORY "daemon"
-
 namespace daemonize {
 
 // Consumes an argument from the given list, if present, parsing it into `var`.
@@ -360,7 +357,7 @@ bool command_parser_executor::print_block(const std::vector<std::string>& args)
     crypto::hash block_hash;
     if (tools::hex_to_type(arg, block_hash))
       return m_executor.print_block_by_hash(block_hash, include_hex);
-    MERROR("Invalid hash or height value: " << arg);
+    oxen::log::error(logcat, "Invalid hash or height value: {}", arg);
   }
 
   return false;
@@ -397,7 +394,7 @@ bool command_parser_executor::print_transaction(const std::vector<std::string>& 
   if (tools::hex_to_type(str_hash, tx_hash))
     m_executor.print_transaction(tx_hash, include_metadata, include_hex, include_json);
   else
-    MERROR("Invalid transaction hash: " << str_hash);
+    oxen::log::error(logcat, "Invalid transaction hash: {}", str_hash);
 
   return true;
 }
@@ -547,7 +544,7 @@ bool command_parser_executor::out_peers(const std::vector<std::string>& args)
 	}
 	  
 	catch(const std::exception& ex) {
-		MERROR("stoi exception");
+		oxen::log::error(logcat, "stoi exception");
 		return false;
 	}
 	
@@ -567,7 +564,7 @@ bool command_parser_executor::in_peers(const std::vector<std::string>& args)
 	}
 
 	catch(const std::exception& ex) {
-		MERROR("stoi exception");
+		oxen::log::error(logcat, "stoi exception");
 		return false;
 	}
 

@@ -370,26 +370,26 @@ eof:
             break;
           if (m_stdin_reader.eos())
           {
-            MGINFO("EOF on stdin, exiting");
+            //MGINFO("EOF on stdin, exiting");
             std::cout << std::endl;
             break;
           }
 
           if (m_cancel)
           {
-            MDEBUG("Input cancelled");
+            //MDEBUG("Input cancelled");
             cmd_handler(std::nullopt);
             m_cancel = false;
             continue;
           }
           if (!get_line_ret)
           {
-            MERROR("Failed to read line.");
+            //MERROR("Failed to read line.");
           }
 
           string_tools::trim(command);
 
-          LOG_PRINT_L2("Read command: " << command);
+          //LOG_PRINT_L2("Read command: " << command);
           if (command.empty())
           {
             continue;
@@ -405,7 +405,7 @@ eof:
         }
         catch (const std::exception &ex)
         {
-          LOG_ERROR("Exception at [console_handler], what=" << ex.what());
+          //LOG_ERROR("Exception at [console_handler], what=" << ex.what());
         }
       }
       if (exit_handler)

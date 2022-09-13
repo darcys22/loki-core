@@ -400,12 +400,12 @@ namespace epee
         }
         catch(const std::exception& ex)
         {
-          MERROR("Failed to parse json, what: " << ex.what());
+          std::cout << "Failed to parse json, what: " << ex.what() << '\n';
           return false;
         }
         catch(...)
         {
-          MERROR("Failed to parse json");
+          std::cout << "Failed to parse json\n";
           return false;
         }
       }

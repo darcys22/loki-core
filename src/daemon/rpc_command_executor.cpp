@@ -59,9 +59,6 @@
 #include <stack>
 #include <type_traits>
 
-#undef OXEN_DEFAULT_LOG_CATEGORY
-#define OXEN_DEFAULT_LOG_CATEGORY "daemon"
-
 using namespace cryptonote::rpc;
 using cryptonote::hf;
 
@@ -2342,7 +2339,6 @@ The Service Node will not activate until the entire stake has been contributed.
   }
 
   scoped_log_cats.reset();
-
   {
     auto maybe_registration = try_running([this, staking_requirement, &args] { return invoke<GET_SERVICE_NODE_REGISTRATION_CMD_RAW>(json{{"staking_requirement", staking_requirement}, {"args", args}, {"make_friendly", true}}); }, "Failed to validate registration arguments; check the addresses and registration parameters and that the Daemon is running with the '--service-node' flag");
     if (!maybe_registration)

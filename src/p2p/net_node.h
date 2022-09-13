@@ -40,9 +40,11 @@
 #include <utility>
 #include <vector>
 #include <shared_mutex>
+#include <fmt/format.h>
 
 #include "cryptonote_config.h"
 #include "cryptonote_protocol/levin_notify.h"
+#include "cryptonote_basic/connection_context.h"
 #include "epee/warnings.h"
 #include "epee/net/abstract_tcp_server2.h"
 #include "epee/net/levin_protocol_handler.h"
@@ -367,11 +369,11 @@ namespace nodetool
     bool check_incoming_connections();
 
     void kill() { ///< will be called e.g. from deinit()
-      MINFO("Killing the net_node");
+      oxen::log::info(globallogcat, "Killing the net_node");
       is_closing = true;
       if(mPeersLoggerThread)
         mPeersLoggerThread->join(); // make sure the thread finishes
-      MINFO("Joined extra background net_node threads");
+      oxen::log::info(globallogcat, "Joined extra background net_node threads");
     }
 
     //debug functions
@@ -478,6 +480,14 @@ namespace nodetool
     extern const command_line::arg_descriptor<int64_t> arg_limit_rate_down;
     extern const command_line::arg_descriptor<int64_t> arg_limit_rate;
 }
+
+template <typename T>
+struct fmt::formatter<T, char, std::enable_if_t<std::is_base_of_v<epee::net_utils::connection_context_base, T>>> : fmt::formatter<std::string> {
+  auto format(T c, format_context& ctx) {
+    return formatter<std::string>::format(
+        fmt::format("[{}]", epee::net_utils::print_connection_context_short(c)), ctx);
+  }
+};
 
 POP_WARNINGS
 

@@ -7,9 +7,6 @@
 [submodule "external/randomx"]
 	path = external/randomx
 	url = https://github.com/oxen-io/loki-randomXL
-[submodule "external/loki-mq"]
-	path = external/oxen-mq
-	url = https://github.com/oxen-io/loki-mq.git
 [submodule "external/googletest"]
 	path = external/googletest
 	url = https://github.com/google/googletest.git
@@ -43,3 +40,12 @@
 [submodule "external/oxen-encoding"]
 	path = external/oxen-encoding
 	url = https://github.com/oxen-io/oxen-encoding.git
+[submodule "external/oxen-logging"]
+	path = external/oxen-logging
+	url = https://github.com/oxen-io/oxen-logging
+[submodule "external/loki-mq"]
+	path = external/oxen-mq
+  url = https://github.com/oxen-io/loki-mq.git
+[submodule "oxen-logging"]
+	path = oxen-logging
+	url = https://github.com/oxen-io/oxen-logging
