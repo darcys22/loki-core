@@ -3350,9 +3350,12 @@ void wallet2::process_parsed_blocks(
         const std::vector<parsed_block>& parsed_blocks,
         uint64_t& blocks_added,
         std::map<std::pair<uint64_t, uint64_t>, size_t>* output_tracker_cache) {
+    log::info(logcat, "Entering process_parsed_blocks: start_height={}, blocks.size()={}, parsed_blocks.size()={}",
+              start_height, blocks.size(), parsed_blocks.size());
     size_t current_index = start_height;
     blocks_added = 0;
 
+    // Validate input sizes.
     THROW_WALLET_EXCEPTION_IF(
             blocks.size() != parsed_blocks.size(), error::wallet_internal_error, "size mismatch");
     THROW_WALLET_EXCEPTION_IF(
@@ -3361,29 +3364,37 @@ void wallet2::process_parsed_blocks(
     tools::threadpool& tpool = tools::threadpool::getInstance();
     tools::threadpool::waiter waiter;
 
+    // Calculate total number of transactions to process.
     size_t num_txes = 0;
-    std::vector<tx_cache_data> tx_cache_data;
     for (size_t i = 0; i < blocks.size(); ++i)
         num_txes += 1 + parsed_blocks[i].txes.size();
+    log::info(logcat, "Total transactions to process: {}", num_txes);
+    std::vector<tx_cache_data> tx_cache_data;
     tx_cache_data.resize(num_txes);
     size_t txidx = 0;
+
+    // Cache transaction data for each block.
     for (size_t i = 0; i < blocks.size(); ++i) {
+        log::debug(logcat, "Processing block {} at height {}: {} txes", i, start_height + i, parsed_blocks[i].txes.size());
         THROW_WALLET_EXCEPTION_IF(
                 parsed_blocks[i].txes.size() != parsed_blocks[i].block.tx_hashes.size(),
                 error::wallet_internal_error,
-                "Mismatched parsed_blocks[i].txes.size() and "
-                "parsed_blocks[i].block.tx_hashes.size()");
+                "Mismatched parsed_blocks[i].txes.size() and parsed_blocks[i].block.tx_hashes.size()");
         if (should_skip_block(parsed_blocks[i].block, start_height + i)) {
+            log::info(logcat, "Skipping block at height {} as determined by should_skip_block", start_height + i);
             txidx += 1 + parsed_blocks[i].block.tx_hashes.size();
             continue;
         }
-        if (m_refresh_type != RefreshNoCoinbase && parsed_blocks[i].block.miner_tx)
+        if (m_refresh_type != RefreshNoCoinbase && parsed_blocks[i].block.miner_tx) {
+            log::info(logcat, "Submitting task to cache coinbase tx for block {} at height {} (tx_cache index {})", i, start_height + i, txidx);
             tpool.submit(&waiter, [&, i, txidx]() {
                 cache_tx_data(
                         *parsed_blocks[i].block.miner_tx,
                         get_transaction_hash(*parsed_blocks[i].block.miner_tx),
                         tx_cache_data[txidx]);
+                log::debug(logcat, "Cached coinbase tx for block {} at tx_cache index {}", i, txidx);
             });
+        }
         ++txidx;
         for (size_t idx = 0; idx < parsed_blocks[i].txes.size(); ++idx) {
             tpool.submit(&waiter, [&, i, idx, txidx]() {
@@ -3391,6 +3402,7 @@ void wallet2::process_parsed_blocks(
                         parsed_blocks[i].txes[idx],
                         parsed_blocks[i].block.tx_hashes[idx],
                         tx_cache_data[txidx]);
+                log::debug(logcat, "Cached tx {} for block {} at tx_cache index {}", idx, i, txidx);
             });
             ++txidx;
         }
@@ -3400,12 +3412,16 @@ void wallet2::process_parsed_blocks(
             error::wallet_internal_error,
             "txidx does not match tx_cache_data size");
     waiter.wait(&tpool);
+    log::info(logcat, "Completed caching transaction data tasks");
 
+    // Prepare hardware device for transaction parsing.
     hw::device& hwdev = m_account.get_device();
     hw::mode_resetter rst{hwdev};
     hwdev.set_mode(hw::device::mode::TRANSACTION_PARSE);
+    log::info(logcat, "Set hwdev mode to TRANSACTION_PARSE");
     const cryptonote::account_keys& keys = m_account.get_keys();
 
+    // Lambda to generate key derivations.
     auto gender = [&](wallet2::is_out_data& iod) {
         if (!hwdev.generate_key_derivation(iod.pkey, keys.m_view_secret_key, iod.derivation)) {
             log::warning(logcat, "Failed to generate key derivation from tx pubkey, skipping");
@@ -3416,24 +3432,31 @@ void wallet2::process_parsed_blocks(
         }
     };
 
+    // Process each tx_cache_data slot to generate key derivations.
     for (size_t i = 0; i < tx_cache_data.size(); ++i) {
-        if (tx_cache_data[i].empty())
+        if (tx_cache_data[i].empty()) {
+            log::debug(logcat, "tx_cache_data at index {} is empty, skipping key derivation", i);
             continue;
+        }
         tpool.submit(
                 &waiter,
-                [&hwdev, &gender, &tx_cache_data, i]() {
+                [&, i]() {
                     auto& slot = tx_cache_data[i];
                     std::unique_lock hwdev_lock{hwdev};
                     for (auto& iod : slot.primary)
                         gender(iod);
                     for (auto& iod : slot.additional)
                         gender(iod);
+                    log::debug(logcat, "Completed key derivation for tx_cache_data index {}", i);
                 },
                 true);
     }
     waiter.wait(&tpool);
+    log::info(logcat, "Completed key derivation generation for transaction cache data");
 
+    // Lambda to generate output derivations.
     auto geniod = [&](const cryptonote::transaction& tx, size_t n_vouts, size_t txidx) {
+        log::debug(logcat, "Generating output derivations for tx_cache_data index {}", txidx);
         for (size_t k = 0; k < n_vouts; ++k) {
             const auto& o = tx.vout[k];
             if (std::holds_alternative<cryptonote::txout_to_key>(o.target)) {
@@ -3458,13 +3481,16 @@ void wallet2::process_parsed_blocks(
                 }
             }
         }
+        log::debug(logcat, "Completed generating output derivations for tx_cache_data index {}", txidx);
     };
 
+    // Process each parsed block to generate output derivations.
     txidx = 0;
     for (size_t i = 0; i < parsed_blocks.size(); ++i) {
         cryptonote::block blk = parsed_blocks[i].block;
-
+        log::debug(logcat, "Processing parsed block {} at height {}", i, start_height + i);
         if (should_skip_block(parsed_blocks[i].block, start_height + i)) {
+            log::info(logcat, "Skipping block {} at height {} as determined by should_skip_block", i, start_height + i);
             txidx += 1 + parsed_blocks[i].block.tx_hashes.size();
             continue;
         }
@@ -3478,6 +3504,8 @@ void wallet2::process_parsed_blocks(
             const size_t n_vouts = m_refresh_type == RefreshType::RefreshOptimizeCoinbase
                                          ? 1
                                          : parsed_blocks[i].block.miner_tx->vout.size();
+            log::info(logcat, "Submitting geniod for miner_tx of block {} at tx_cache_data index {} with n_vouts={}",
+                      i, txidx, n_vouts);
             tpool.submit(
                     &waiter,
                     [&, i, n_vouts, txidx]() {
@@ -3491,6 +3519,7 @@ void wallet2::process_parsed_blocks(
                     txidx >= tx_cache_data.size(),
                     error::wallet_internal_error,
                     "txidx out of range");
+            log::info(logcat, "Submitting geniod for tx {} of block {} at tx_cache_data index {}", j, i, txidx);
             tpool.submit(
                     &waiter,
                     [&, i, j, txidx]() {
@@ -3507,18 +3536,23 @@ void wallet2::process_parsed_blocks(
             error::wallet_internal_error,
             "txidx did not reach expected value");
     waiter.wait(&tpool);
+    log::info(logcat, "Completed output derivation generation for all transaction cache data");
     hwdev.set_mode(hw::device::mode::NONE);
+    log::info(logcat, "Reset hwdev mode to NONE");
 
+    // Process new blockchain entries.
     size_t tx_cache_data_offset = 0;
     for (size_t i = 0; i < blocks.size(); ++i) {
         const crypto::hash& bl_id = parsed_blocks[i].hash;
         const cryptonote::block& bl = parsed_blocks[i].block;
+        log::info(logcat, "Processing blockchain entry for block {} with hash {}", i, bl_id);
 
         if (current_index >= m_blockchain.size()
 #ifdef SCAN_GENESIS_BLOCK
             || current_index == 0
 #endif
         ) {
+            log::info(logcat, "Block at height {} is new; processing new blockchain entry", current_index);
             process_new_blockchain_entry(
                     bl,
                     blocks[i],
@@ -3530,7 +3564,8 @@ void wallet2::process_parsed_blocks(
                     output_tracker_cache);
             ++blocks_added;
         } else if (bl_id != m_blockchain[current_index]) {
-            // split detected here !!!
+            log::warning(logcat, "Blockchain split detected at height {}: new block hash {} != local blockchain hash {}",
+                      current_index, tools::hex_guts(bl_id), tools::hex_guts(m_blockchain[current_index]));
             THROW_WALLET_EXCEPTION_IF(
                     current_index == start_height,
                     error::wallet_internal_error,
@@ -3538,8 +3573,8 @@ void wallet2::process_parsed_blocks(
                             tools::hex_guts(bl_id) + " (height " + std::to_string(start_height) +
                             "), local block id at this height: " +
                             tools::hex_guts(m_blockchain[current_index]));
-
             detach_blockchain(current_index, output_tracker_cache);
+            log::info(logcat, "Detached blockchain starting from height {}", current_index);
             process_new_blockchain_entry(
                     bl,
                     blocks[i],
@@ -3550,11 +3585,12 @@ void wallet2::process_parsed_blocks(
                     tx_cache_data_offset,
                     output_tracker_cache);
         } else {
-            log::debug(logcat, "Block is already in blockchain: {}", bl_id);
+            log::debug(logcat, "Block at height {} is already in blockchain: {}", current_index, bl_id);
         }
         ++current_index;
         tx_cache_data_offset += 1 + parsed_blocks[i].txes.size();
     }
+    log::info(logcat, "Exiting process_parsed_blocks: blocks_added={}", blocks_added);
 }
 //----------------------------------------------------------------------------------------------------
 void wallet2::refresh(bool trusted_daemon) {
@@ -3578,30 +3614,37 @@ void wallet2::pull_and_parse_next_blocks(
         bool& last,
         bool& error,
         std::exception_ptr& exception) {
+    log::info(logcat, "Entering pull_and_parse_next_blocks: start_height = {}", start_height);
     error = false;
     last = false;
     exception = nullptr;
 
     try {
+        log::info(logcat, "Dropping from short_chain_history with count 3");
         drop_from_short_history(short_chain_history, 3);
+        log::info(logcat, "After drop, short_chain_history size = {}", short_chain_history.size());
 
+        log::info(logcat, "Checking consistency: prev_blocks.size() = {}, prev_parsed_blocks.size() = {}",
+                  prev_blocks.size(), prev_parsed_blocks.size());
         THROW_WALLET_EXCEPTION_IF(
                 prev_blocks.size() != prev_parsed_blocks.size(),
                 error::wallet_internal_error,
                 "size mismatch");
 
-        // prepend the last 3 blocks, should be enough to guard against a block or two's reorg
-        auto s =
-                std::next(
-                        prev_parsed_blocks.rbegin(), std::min((size_t)3, prev_parsed_blocks.size()))
-                        .base();
+        // Prepend the last 3 blocks to guard against reorgs.
+        size_t num_to_prepend = std::min((size_t)3, prev_parsed_blocks.size());
+        log::info(logcat, "Prepending last {} blocks from prev_parsed_blocks to short_chain_history", num_to_prepend);
+        auto s = std::next(prev_parsed_blocks.rbegin(), num_to_prepend).base();
         for (; s != prev_parsed_blocks.end(); ++s) {
+            log::info(logcat, "Prepending block with hash: {}", s->hash);
             short_chain_history.push_front(s->hash);
         }
+        log::info(logcat, "After prepending, short_chain_history size = {}", short_chain_history.size());
 
-        // pull the new blocks
+        // Pull the new blocks.
         std::vector<cryptonote::rpc::GET_BLOCKS_BIN::block_output_indices> o_indices;
         uint64_t current_height;
+        log::info(logcat, "Calling pull_blocks with start_height = {}", start_height);
         pull_blocks(
                 start_height,
                 blocks_start_height,
@@ -3609,6 +3652,9 @@ void wallet2::pull_and_parse_next_blocks(
                 blocks,
                 o_indices,
                 current_height);
+        log::info(logcat, "pull_blocks returned: blocks_start_height = {}, current_height = {}, blocks.size() = {}, o_indices.size() = {}",
+                  blocks_start_height, current_height, blocks.size(), o_indices.size());
+
         THROW_WALLET_EXCEPTION_IF(
                 blocks.size() != o_indices.size(),
                 error::wallet_internal_error,
@@ -3617,47 +3663,77 @@ void wallet2::pull_and_parse_next_blocks(
         tools::threadpool& tpool = tools::threadpool::getInstance();
         tools::threadpool::waiter waiter;
         parsed_blocks.resize(blocks.size());
+
+        log::info(logcat, "Submitting {} tasks to parse {} blocks", blocks.size(), blocks.size());
         for (size_t i = 0; i < blocks.size(); ++i)
             tpool.submit(
                     &waiter,
                     [&, i] {
-                        return parse_block_round(
+                        log::info(logcat, "Parsing block at index {}", i);
+                        parse_block_round(
                                 blocks[i].block,
                                 parsed_blocks[i].block,
                                 parsed_blocks[i].hash,
                                 parsed_blocks[i].error);
+                        if (parsed_blocks[i].error) {
+                            log::error(logcat, "Error parsing block at index {}", i);
+                        } else {
+                            log::info(logcat, "Successfully parsed block at index {}", i);
+                        }
                     },
                     true);
         waiter.wait(&tpool);
+        log::info(logcat, "Completed block parsing tasks");
+
         for (size_t i = 0; i < blocks.size(); ++i) {
             if (parsed_blocks[i].error) {
+                log::error(logcat, "Detected error in parsed block at index {}. Aborting further processing.", i);
                 error = true;
                 break;
             }
             parsed_blocks[i].o_indices = std::move(o_indices[i]);
+            log::info(logcat, "Assigned o_indices for block at index {}", i);
         }
 
+        // Parse transactions in each block concurrently.
         std::mutex error_lock;
+        size_t total_tx_tasks = 0;
         for (size_t i = 0; i < blocks.size(); ++i) {
             parsed_blocks[i].txes.resize(blocks[i].txs.size());
+            total_tx_tasks += blocks[i].txs.size();
+        }
+        log::info(logcat, "Submitting {} transaction parsing tasks across {} blocks", total_tx_tasks, blocks.size());
+        for (size_t i = 0; i < blocks.size(); ++i) {
             for (size_t j = 0; j < blocks[i].txs.size(); ++j) {
                 tpool.submit(
                         &waiter,
                         [&, i, j]() {
+                            log::info(logcat, "Parsing tx {} in block {}", j, i);
                             if (!parse_and_validate_tx_base_from_blob(
                                         blocks[i].txs[j], parsed_blocks[i].txes[j])) {
+                                log::error(logcat, "Failed to parse/validate tx {} in block {}", j, i);
                                 std::lock_guard lock{error_lock};
                                 error = true;
+                            } else {
+                                log::info(logcat, "Successfully parsed tx {} in block {}", j, i);
                             }
                         },
                         true);
             }
         }
         waiter.wait(&tpool);
-        last = !blocks.empty() && parsed_blocks.back().block.get_height() + 1 == current_height;
+        log::info(logcat, "Completed transaction parsing tasks");
+
+        last = !blocks.empty() && (parsed_blocks.back().block.get_height() + 1 == current_height);
+        log::info(logcat, "Setting 'last' flag to {} (last block height: {}, current_height: {})", 
+                  last, blocks.empty() ? 0 : parsed_blocks.back().block.get_height(), current_height);
     } catch (...) {
         error = true;
+        exception = std::current_exception();
+        log::error(logcat, "Exception caught in pull_and_parse_next_blocks");
     }
+
+    log::info(logcat, "Exiting pull_and_parse_next_blocks: error = {}, last = {}", error, last);
 }
 
 void wallet2::remove_obsolete_pool_txs(const std::vector<crypto::hash>& tx_hashes) {
@@ -3976,69 +4052,91 @@ void wallet2::fast_refresh(
         uint64_t& blocks_start_height,
         std::list<crypto::hash>& short_chain_history,
         bool force) {
+    log::info(logcat, "Entering fast_refresh: stop_height={}, force={}", stop_height, force);
     std::vector<crypto::hash> hashes;
 
     uint64_t checkpoint_height = 0;
     crypto::hash checkpoint_hash =
             cryptonote::get_newest_hardcoded_checkpoint(nettype(), &checkpoint_height);
-    if ((stop_height > checkpoint_height && m_blockchain.size() - 1 < checkpoint_height) &&
-        !force) {
-        // we will drop all these, so don't bother getting them
+    log::info(logcat, "Obtained newest hardcoded checkpoint: checkpoint_height={}, checkpoint_hash={}",
+              checkpoint_height, checkpoint_hash);
+
+    if ((stop_height > checkpoint_height && m_blockchain.size() - 1 < checkpoint_height) && !force) {
+        log::info(logcat, "Condition met: stop_height ({}) > checkpoint_height ({}) and m_blockchain.size()-1 ({}) < checkpoint_height, and force is false",
+                  stop_height, checkpoint_height, m_blockchain.size() - 1);
         uint64_t missing_blocks = checkpoint_height - m_blockchain.size();
-        while (missing_blocks-- > 0)
-            m_blockchain.push_back(null<hash>);  // maybe a bit suboptimal, but deque won't do huge
-                                                 // reallocs like vector
+        log::info(logcat, "Missing blocks before checkpoint: {}", missing_blocks);
+        while (missing_blocks-- > 0) {
+            m_blockchain.push_back(null<hash>);
+            log::debug(logcat, "Pushed null block to blockchain; new size = {}", m_blockchain.size());
+        }
         m_blockchain.push_back(checkpoint_hash);
+        log::info(logcat, "Pushed checkpoint_hash ({}) to blockchain", checkpoint_hash);
         m_blockchain.trim(checkpoint_height);
+        log::info(logcat, "Trimmed blockchain to checkpoint_height: {}", checkpoint_height);
         m_cached_height = m_blockchain.size();
         short_chain_history.clear();
+        log::info(logcat, "Cleared short_chain_history; regenerating short_chain_history...");
         get_short_chain_history(short_chain_history);
+        log::info(logcat, "Regenerated short_chain_history; size = {}", short_chain_history.size());
     }
 
     size_t current_index = m_blockchain.size();
+    log::info(logcat, "Starting fast refresh loop: current_index={} stop_height={}", current_index, stop_height);
     while (m_run.load(std::memory_order_relaxed) && current_index < stop_height) {
+        log::info(logcat, "Pulling hashes; current blockchain size: {}", m_blockchain.size());
         pull_hashes(0, blocks_start_height, short_chain_history, hashes);
-        if (hashes.size() <= 3)
+        log::info(logcat, "Pulled {} hashes, blocks_start_height={}", hashes.size(), blocks_start_height);
+
+        if (hashes.size() <= 3) {
+            log::warning(logcat, "Only {} hashes pulled (<= 3); exiting fast_refresh early", hashes.size());
             return;
+        }
         if (blocks_start_height < m_blockchain.offset()) {
-            log::error(
-                    logcat,
-                    "Blocks start before blockchain offset: {} {}",
-                    blocks_start_height,
-                    m_blockchain.offset());
+            log::error(logcat, "blocks_start_height ({}) is less than blockchain offset ({})", blocks_start_height, m_blockchain.offset());
             return;
         }
         current_index = blocks_start_height;
+        log::info(logcat, "Set current_index to blocks_start_height: {}", current_index);
+
         if (hashes.size() + current_index < stop_height) {
+            log::info(logcat, "Not enough hashes to reach stop_height: current_index({}) + hashes.size()({}) < stop_height({})",
+                      current_index, hashes.size(), stop_height);
             drop_from_short_history(short_chain_history, 3);
             auto right = hashes.end();
-            // prepend 3 more
             for (int i = 0; i < 3; i++) {
                 right--;
                 short_chain_history.push_front(*right);
+                log::debug(logcat, "Prepended hash {} to short_chain_history", *right);
             }
         }
+
         for (auto& bl_id : hashes) {
             if (current_index >= m_blockchain.size()) {
                 if (!(current_index % 1024))
-                    log::debug(logcat, "Skipped block by height: {}", current_index);
+                    log::debug(logcat, "At block height {}: adding new block", current_index);
                 m_blockchain.push_back(bl_id);
                 m_cached_height++;
+                log::info(logcat, "Pushed new block hash {} at height {}", bl_id, current_index);
 
-                if (m_callback) {  // FIXME: this isn't right, but simplewallet just logs that we
-                                   // got a block.
+                if (m_callback) {  // FIXME: this isn't right, but simplewallet just logs that we got a block.
                     cryptonote::block dummy;
                     m_callback->on_new_block(current_index, dummy);
+                    log::info(logcat, "Triggered on_new_block callback for height {}", current_index);
                 }
             } else if (bl_id != m_blockchain[current_index]) {
-                // split detected here !!!
+                log::warning(logcat, "Blockchain split detected at height {}: new hash {} != local blockchain hash {}",
+                          current_index, tools::hex_guts(bl_id), tools::hex_guts(m_blockchain[current_index]));
                 return;
             }
             ++current_index;
-            if (current_index >= stop_height)
+            if (current_index >= stop_height) {
+                log::info(logcat, "Reached stop_height {}. Exiting fast_refresh.", stop_height);
                 return;
+            }
         }
     }
+    log::info(logcat, "Exiting fast_refresh: current_index={}", current_index);
 }
 
 bool wallet2::add_address_book_row(
@@ -4103,14 +4201,18 @@ wallet2::create_output_tracker_cache() const {
 
 //----------------------------------------------------------------------------------------------------
 void wallet2::refresh(
-        bool trusted_daemon,
-        uint64_t start_height,
-        uint64_t& blocks_fetched,
-        bool& received_money,
-        bool check_pool) {
+    bool trusted_daemon,
+    uint64_t start_height,
+    uint64_t& blocks_fetched,
+    bool& received_money,
+    bool check_pool) {
+    log::info(logcat, "Starting wallet refresh: trusted_daemon={}, start_height={}, check_pool={}",
+              trusted_daemon, start_height, check_pool);
+
     if (m_offline) {
+        log::info(logcat, "Wallet is offline. Exiting refresh immediately.");
         blocks_fetched = 0;
-        received_money = 0;
+        received_money = false;
         return;
     }
 
@@ -4119,101 +4221,120 @@ void wallet2::refresh(
     uint64_t added_blocks = 0;
     size_t try_count = 0;
     crypto::hash last_tx_hash_id = m_transfers.size() ? m_transfers.back().m_txid : null<hash>;
+    log::info(logcat, "Initial last transaction hash: {}", last_tx_hash_id);
+
     std::list<crypto::hash> short_chain_history;
     tools::threadpool& tpool = tools::threadpool::getInstance();
     tools::threadpool::waiter waiter;
-    uint64_t blocks_start_height;
+    uint64_t blocks_start_height = 0;
     std::vector<cryptonote::block_complete_entry> blocks;
     std::vector<parsed_block> parsed_blocks;
     std::shared_ptr<std::map<std::pair<uint64_t, uint64_t>, size_t>> output_tracker_cache;
     hw::device& hwdev = m_account.get_device();
 
-    // pull the first set of blocks
-    get_short_chain_history(
-            short_chain_history,
-            (m_first_refresh_done || trusted_daemon) ? 1 : FIRST_REFRESH_GRANULARITY);
+    // Generate short chain history with the proper granularity.
+    int granularity = (m_first_refresh_done || trusted_daemon) ? 1 : FIRST_REFRESH_GRANULARITY;
+    get_short_chain_history(short_chain_history, granularity);
+    log::info(logcat, "Generated short chain history with granularity {} (history size: {})",
+              granularity, short_chain_history.size());
+
     m_run.store(true, std::memory_order_relaxed);
+    log::info(logcat, "m_run set to true; beginning refresh process.");
+
     if (start_height > m_blockchain.size() || m_refresh_from_block_height > m_blockchain.size()) {
+        log::info(logcat,
+                  "start_height ({}) or m_refresh_from_block_height ({}) exceeds blockchain size ({}). "
+                  "Initiating fast_refresh.", start_height, m_refresh_from_block_height, m_blockchain.size());
         if (!start_height)
             start_height = m_refresh_from_block_height;
-        // we can shortcut by only pulling hashes up to the start_height
+
         fast_refresh(start_height, blocks_start_height, short_chain_history);
-        // regenerate the history now that we've got a full set of hashes
+        log::info(logcat, "fast_refresh completed. blocks_start_height set to {}", blocks_start_height);
+
+        // Regenerate the history after fast_refresh.
         short_chain_history.clear();
-        get_short_chain_history(
-                short_chain_history,
-                (m_first_refresh_done || trusted_daemon) ? 1 : FIRST_REFRESH_GRANULARITY);
+        get_short_chain_history(short_chain_history, granularity);
+        log::info(logcat, "Re-generated short chain history after fast_refresh (new size: {})",
+                  short_chain_history.size());
         start_height = 0;
-        // and then fall through to regular refresh processing
     }
 
-    // If stop() is called during fast refresh we don't need to continue
-    if (!m_run.load(std::memory_order_relaxed))
+    if (!m_run.load(std::memory_order_relaxed)) {
+        log::info(logcat, "m_run flag false after fast_refresh. Aborting refresh.");
         return;
-    // always reset start_height to 0 to force short_chain_ history to be used on
-    // subsequent pulls in this refresh.
+    }
+
+    // Force short_chain_history usage on subsequent pulls.
     start_height = 0;
+    log::info(logcat, "Reset start_height to 0 for subsequent pulls.");
 
     OXEN_DEFER {
         if (m_encrypt_keys_after_refresh) {
+            log::info(logcat, "Encrypting keys after refresh.");
             encrypt_keys(*m_encrypt_keys_after_refresh);
             m_encrypt_keys_after_refresh = std::nullopt;
         }
-
         hwdev.computing_key_images(false);
+        log::info(logcat, "Disabled computing_key_images on hardware device.");
     };
 
-    // get updated pool state first, but do not process those txes just yet,
-    // since that might cause a password prompt, which would introduce a data
-    // leak allowing a passive adversary with traffic analysis capability to
-    // infer when we get an incoming output
+    // Get updated pool state if requested (but do not process yet)
     std::vector<get_pool_state_tx> process_pool_txs;
-    if (check_pool)
+    if (check_pool) {
         process_pool_txs = get_pool_state(true /*refreshed*/);
+        log::info(logcat, "Retrieved pool state. Number of pool transactions: {}",
+                  process_pool_txs.size());
+    }
 
     bool first = true, last = false;
     while (m_run.load(std::memory_order_relaxed)) {
-        uint64_t next_blocks_start_height;
+        log::info(logcat, "Refresh loop iteration: start_height={}, first={}, last={}",
+                  start_height, first, last);
+        uint64_t next_blocks_start_height = 0;
         std::vector<cryptonote::block_complete_entry> next_blocks;
         std::vector<parsed_block> next_parsed_blocks;
-        bool error;
+        bool error = false;
         std::exception_ptr exception;
+
         try {
-            // pull the next set of blocks while we're processing the current one
-            error = false;
-            next_blocks.clear();
-            next_parsed_blocks.clear();
-            added_blocks = 0;
-            if (!first && blocks.empty())
+            if (!first && blocks.empty()) {
+                log::info(logcat, "No blocks left to process. Exiting refresh loop.");
                 break;
-            if (!last)
+            }
+            if (!last) {
+                log::info(logcat, "Submitting async task to pull and parse next blocks from start_height={}",
+                          start_height);
                 tpool.submit(&waiter, [&] {
                     pull_and_parse_next_blocks(
-                            start_height,
-                            next_blocks_start_height,
-                            short_chain_history,
-                            blocks,
-                            parsed_blocks,
-                            next_blocks,
-                            next_parsed_blocks,
-                            last,
-                            error,
-                            exception);
+                        start_height,
+                        next_blocks_start_height,
+                        short_chain_history,
+                        blocks,
+                        parsed_blocks,
+                        next_blocks,
+                        next_parsed_blocks,
+                        last,
+                        error,
+                        exception);
+                    log::info(logcat, "Async pull_and_parse_next_blocks finished. next_blocks_start_height={}, last={}, error={}",
+                              next_blocks_start_height, last, error);
                 });
+            }
 
             if (!first) {
+                log::info(logcat, "Processing parsed blocks starting at blocks_start_height={}",
+                          blocks_start_height);
                 try {
                     process_parsed_blocks(
-                            blocks_start_height,
-                            blocks,
-                            parsed_blocks,
-                            added_blocks,
-                            output_tracker_cache.get());
+                        blocks_start_height,
+                        blocks,
+                        parsed_blocks,
+                        added_blocks,
+                        output_tracker_cache.get());
+                    log::info(logcat, "Processed parsed blocks; added_blocks={}", added_blocks);
                 } catch (const tools::error::out_of_hashchain_bounds_error&) {
-                    log::info(
-                            logcat,
-                            "Daemon claims next refresh block is out of hash chain bounds, "
-                            "resetting hash chain");
+                    log::info(logcat,
+                              "Out_of_hashchain_bounds_error encountered. Resetting hash chain.");
                     uint64_t stop_height = m_blockchain.offset();
                     std::vector<crypto::hash> tip(m_blockchain.size() - m_blockchain.offset());
                     for (size_t i = m_blockchain.offset(); i < m_blockchain.size(); ++i)
@@ -4226,62 +4347,75 @@ void wallet2::refresh(
                     short_chain_history.clear();
                     get_short_chain_history(short_chain_history);
                     fast_refresh(stop_height, blocks_start_height, short_chain_history, true);
+                    log::info(logcat, "fast_refresh after hashchain reset completed. New blocks_start_height={}",
+                              blocks_start_height);
                     THROW_WALLET_EXCEPTION_IF(
-                            (m_blockchain.size() == stop_height ||
-                                             (m_blockchain.size() == 1 && stop_height == 0)
-                                     ? false
-                                     : true),
-                            error::wallet_internal_error,
-                            "Unexpected hashchain size");
+                        (m_blockchain.size() == stop_height ||
+                         (m_blockchain.size() == 1 && stop_height == 0)
+                         ? false
+                         : true),
+                        error::wallet_internal_error,
+                        "Unexpected hashchain size");
                     THROW_WALLET_EXCEPTION_IF(
-                            m_blockchain.offset() != 0,
-                            error::wallet_internal_error,
-                            "Unexpected hashchain offset");
+                        m_blockchain.offset() != 0,
+                        error::wallet_internal_error,
+                        "Unexpected hashchain offset");
                     for (const auto& h : tip)
                         m_blockchain.push_back(h);
                     m_cached_height = m_blockchain.size();
                     short_chain_history.clear();
                     get_short_chain_history(short_chain_history);
                     start_height = stop_height;
-                    throw oxen::traced<std::runtime_error>("");  // loop again
+                    log::info(logcat, "Hashchain reset complete. Restarting refresh loop.");
+                    throw oxen::traced<std::runtime_error>("");
                 } catch (const std::exception& e) {
-                    log::error(logcat, "Error parsing blocks: {}", e.what());
+                    log::error(logcat, "Exception during block processing: {}", e.what());
                     error = true;
                 }
                 blocks_fetched += added_blocks;
+                log::info(logcat, "Updated blocks_fetched={}", blocks_fetched);
             }
+
             waiter.wait(&tpool);
+            log::info(logcat, "Async task completed (waiter returned).");
+
             if (!first && blocks_start_height == next_blocks_start_height) {
+                log::info(logcat, "No new blocks (blocks_start_height {} == next_blocks_start_height {}). "
+                                   "Updating node_rpc_proxy height and exiting refresh loop.",
+                          blocks_start_height, next_blocks_start_height);
                 m_node_rpc_proxy.set_height(m_blockchain.size());
                 break;
             }
 
             first = false;
 
-            // handle error from async fetching thread
             if (error) {
+                log::error(logcat, "Error detected in async task. Throwing exception to abort current iteration.");
                 throw oxen::traced<std::runtime_error>("proxy exception in refresh thread");
             }
 
-            // if we've got at least 10 blocks to refresh, assume we're starting
-            // a long refresh, and setup a tracking output cache if we need to
             if (m_track_uses && (!output_tracker_cache || output_tracker_cache->empty()) &&
-                next_blocks.size() >= 10)
+                next_blocks.size() >= 10) {
                 output_tracker_cache = create_output_tracker_cache();
+                log::info(logcat, "Created output tracker cache (next_blocks size: {}).", next_blocks.size());
+            }
 
-            // switch to the new blocks from the daemon
+            log::info(logcat, "Switching to new blocks: next_blocks_start_height={}", next_blocks_start_height);
             blocks_start_height = next_blocks_start_height;
             blocks = std::move(next_blocks);
             parsed_blocks = std::move(next_parsed_blocks);
         } catch (const tools::error::password_needed&) {
             blocks_fetched += added_blocks;
+            log::warning(logcat, "Password needed exception caught. blocks_fetched updated to {}. Aborting refresh.",
+                      blocks_fetched);
             waiter.wait(&tpool);
             throw;
-        } catch (const std::exception&) {
+        } catch (const std::exception& e) {
             blocks_fetched += added_blocks;
+            log::error(logcat, "Exception caught in refresh loop: {} (try_count={})", e.what(), try_count);
             waiter.wait(&tpool);
             if (try_count < 3) {
-                log::info(logcat, "Another try pull_blocks (try_count={})...", try_count);
+                log::info(logcat, "Retrying pull_blocks (attempt {} of 3). Resetting state.", try_count + 1);
                 first = true;
                 start_height = 0;
                 blocks.clear();
@@ -4290,36 +4424,48 @@ void wallet2::refresh(
                 get_short_chain_history(short_chain_history, 1);
                 ++try_count;
             } else {
-                log::error(logcat, "pull_blocks failed, try_count={}", try_count);
+                log::error(logcat, "Maximum retry attempts reached (try_count={}). Failing refresh.", try_count);
                 throw;
             }
         }
     }
-    if (last_tx_hash_id != (m_transfers.size() ? m_transfers.back().m_txid : null<hash>))
+
+    // Check if new transfers have been seen.
+    if (last_tx_hash_id != (m_transfers.size() ? m_transfers.back().m_txid : null<hash>)) {
         received_money = true;
+        log::info(logcat, "New transfer detected. Money received.");
+    } else {
+        log::info(logcat, "No new transfers detected.");
+    }
 
     uint64_t immutable_height = 0;
-    if (m_node_rpc_proxy.get_immutable_height(immutable_height))
+    if (m_node_rpc_proxy.get_immutable_height(immutable_height)) {
         m_immutable_height = immutable_height;
+        log::info(logcat, "Immutable height updated to {}", immutable_height);
+    } else {
+        log::warning(logcat, "Failed to update immutable height from node_rpc_proxy.");
+    }
 
     try {
-        // If stop() is called we don't need to check pending transactions
-        if (check_pool && m_run.load(std::memory_order_relaxed) && !process_pool_txs.empty())
+        if (check_pool && m_run.load(std::memory_order_relaxed) && !process_pool_txs.empty()) {
+            log::info(logcat, "Processing pool state. Pending pool tx count: {}",
+                      process_pool_txs.size());
             process_pool_state(process_pool_txs);
+            log::info(logcat, "Pool state processed successfully.");
+        }
     } catch (...) {
-        log::info(logcat, "Failed to check pending transactions");
+        log::info(logcat, "Exception caught while processing pending pool transactions.");
     }
 
     refresh_batching_cache();
+    log::info(logcat, "Refreshed batching cache.");
 
     m_first_refresh_done = true;
-
-    log::info(
-            logcat,
-            "Refresh done, blocks received: {}, balance (all accounts): {}, unlocked: {}",
-            blocks_fetched,
-            print_money(balance_all(false)),
-            print_money(unlocked_balance_all(false)));
+    log::info(logcat, "Refresh complete. Total blocks received: {}, Balance (all accounts): {}, "
+                      "Unlocked balance (all accounts): {}",
+          blocks_fetched,
+          print_money(balance_all(false)),
+          print_money(unlocked_balance_all(false)));
 }
 //----------------------------------------------------------------------------------------------------
 bool wallet2::refresh(
