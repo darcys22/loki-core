@@ -3144,15 +3144,33 @@ void wallet2::process_outgoing(
 //----------------------------------------------------------------------------------------------------
 bool wallet2::should_skip_block(const cryptonote::block& b, uint64_t height) const {
 #ifdef SCAN_GENESIS_BLOCK
+    log::info(logcat, "should_skip_block: SCAN_GENESIS_BLOCK defined, always returning false");
     return false;
 #else
-    // seeking only for blocks that are not older then the wallet creation time plus 1 day. 1 day is
-    // for possible user incorrect time setup
-    return !(
-            b.timestamp + 60 * 60 * 24 > m_account.get_createtime() &&
-            height >= m_refresh_from_block_height);
+    uint64_t block_timestamp = b.timestamp;
+    uint64_t one_day_seconds = 60 * 60 * 24;
+    uint64_t block_plus_day = block_timestamp + one_day_seconds;
+    uint64_t wallet_createtime = m_account.get_createtime();
+    uint64_t refresh_from_height = m_refresh_from_block_height;
+
+    bool timestamp_ok = (block_plus_day > wallet_createtime);
+    bool height_ok = (height >= refresh_from_height);
+    bool condition = timestamp_ok && height_ok;
+    bool skip = !condition;
+
+    log::info(logcat,
+        "should_skip_block: block.timestamp = {}, block.timestamp + 1 day = {}, wallet_createtime = {}, height = {}, m_refresh_from_block_height = {}",
+        block_timestamp, block_plus_day, wallet_createtime, height, refresh_from_height);
+    log::info(logcat,
+        "should_skip_block: timestamp_ok (block.timestamp+1_day > wallet_createtime) = {}, height_ok (height >= m_refresh_from_block_height) = {}",
+        timestamp_ok, height_ok);
+    log::info(logcat, "should_skip_block: Combined condition (timestamp_ok && height_ok) = {}. Returning skip = {}",
+        condition, skip);
+
+    return skip;
 #endif
 }
+
 //----------------------------------------------------------------------------------------------------
 void wallet2::process_new_blockchain_entry(
         const cryptonote::block& b,
